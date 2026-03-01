@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Professional Office Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="light-mode">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="app-container">
+        <!-- Sidebar: Mini Calendar & Legend -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-text">Calendar</div>
+                <button id="mobile-sidebar-close" class="mobile-only-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="mini-calendar-container">
+                <div class="mini-header">
+                    <button id="mini-prev" class="icon-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                    <h3 id="mini-month-year"></h3>
+                    <button id="mini-next" class="icon-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <!-- Details for mini calendar filled by JS -->
+                <div class="mini-grid-header">
+                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                </div>
+                <div id="mini-calendar-grid" class="mini-grid"></div>
+
+                <div class="mini-events-wrapper" style="margin-top: 1.5rem;">
+                    <button id="mini-events-dropdown-btn" class="btn btn-outline"
+                        style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-list-ul" style="margin-right: 0.5rem;"></i> Holidays & Events</span>
+                        <i class="fa-solid fa-chevron-down" id="mini-events-chevron"></i>
+                    </button>
+                    <div id="mini-events-dropdown-content" class="hidden"
+                        style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background-color: var(--bg-surface); padding: 0.5rem; display: flex; flex-direction: column; gap: 4px;">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-container">
+                <h3>Legend</h3>
+                <div class="legend-item">
+                    <span class="color-dot gov"></span> Company Holidays
+                </div>
+                <div class="legend-item">
+                    <span class="color-dot client"></span> Client Meetings
+                </div>
+                <div class="legend-item">
+                    <span class="color-dot internal"></span> Internal Events
+                </div>
+                <div class="legend-item">
+                    <span class="color-dot custom"></span> Personal / Custom
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <header class="main-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="icon-btn mobile-only"><i class="fa-solid fa-bars"></i></button>
+                    <button id="today-btn" class="btn btn-outline">Today</button>
+
+                    <!-- View Dropdown Toggle -->
+                    <select id="view-select" class="view-select">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month" selected>Month</option>
+                        <option value="year">Year</option>
+                    </select>
+
+                    <div class="month-nav">
+                        <button id="main-prev" class="icon-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                        <h2 id="main-month-year"></h2>
+                        <button id="main-next" class="icon-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button id="theme-toggle" class="icon-btn"><i class="fa-solid fa-moon"></i></button>
+                    <button id="add-event-header-btn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add
+                        Event</button>
+                </div>
+            </header>
+
+            <div class="main-calendar-container">
+                <div class="grid-header">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div id="main-calendar-grid" class="main-grid"></div>
+            </div>
+        </main>
+
+        <!-- Day Details Panel (Right Slide-out) -->
+        <aside id="day-panel" class="day-panel">
+            <div class="panel-header">
+                <h2 id="panel-date-display">Selected Date</h2>
+                <button id="close-panel" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-content">
+                <div class="event-list-header">
+                    <h3>Schedule</h3>
+                    <button id="add-event-panel-btn" class="icon-btn small"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="event-list" class="event-list">
+                    <!-- Events injected by JS -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Add/Edit Event Modal -->
+    <div id="event-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Add Event</h2>
+                <button id="close-modal" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="event-form">
+                    <input type="hidden" id="event-id">
+
+                    <div class="form-group">
+                        <label for="event-title">Event Title <span class="required">*</span></label>
+                        <input type="text" id="event-title" required placeholder="e.g., Weekly Sync">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="event-date">Date <span class="required">*</span></label>
+                            <input type="date" id="event-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="event-type">Type</label>
+                            <select id="event-type">
+                                <option value="internal">Internal Office Event</option>
+                                <option value="client">Client Meeting</option>
+                                <option value="gov">Government Holiday (Admin)</option>
+                                <option value="custom">Custom Holiday / Private</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="event-start">Start Time</label>
+                            <input type="time" id="event-start">
+                        </div>
+                        <div class="form-group">
+                            <label for="event-end">End Time</label>
+                            <input type="time" id="event-end">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="event-desc">Description</label>
+                        <textarea id="event-desc" rows="3" placeholder="Optional details..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="delete-event-btn" class="btn btn-danger hidden">Delete</button>
+                        <div class="right-actions">
+                            <button type="button" id="cancel-modal" class="btn btn-outline">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Event</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules -->
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/holidays.js"></script>
+    <script type="module" src="js/theme.js"></script>
+    <script type="module" src="js/events.js"></script>
+    <script type="module" src="js/calendar.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

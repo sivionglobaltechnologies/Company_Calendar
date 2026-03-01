@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Panel — Office Calendar</title>
+    <meta name="description" content="Admin control panel for managing meetings, holidays and company events.">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════ -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+
+            </div>
+            <h1>Admin Portal</h1>
+            <p class="login-subtitle"></p>
+
+            <form id="login-form" novalidate>
+                <div class="login-form-group">
+                    <label for="login-username">Username</label>
+                    <div class="login-input-wrap">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="login-username" placeholder="admin" autocomplete="username" required>
+                    </div>
+                </div>
+                <div class="login-form-group">
+                    <label for="login-password">Password</label>
+                    <div class="login-input-wrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="••••••••"
+                            autocomplete="current-password" required>
+                    </div>
+                </div>
+                <p class="login-error" id="login-error"></p>
+                <button type="submit" class="login-btn">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In to Admin
+                </button>
+            </form>
+
+            <a href="index.html" class="back-to-calendar">
+                <i class="fa-solid fa-arrow-left"></i> Back to Calendar
+            </a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+     ADMIN SHELL (hidden until logged in)
+═══════════════════════════════════════════════════ -->
+    <div id="admin-shell" style="display:none;">
+        <!-- ── SIDEBAR ──────────────────────────────── -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon-modern">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div class="sidebar-brand-text">
+                    <span>Calendar</span>
+                    <span class="brand-badge">Admin</span>
+                </div>
+                <button id="admin-sidebar-close" class="mobile-only-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="sidebar-section-label">Navigation</p>
+
+            <div class="sidebar-nav-item active" data-section="dashboard">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="sidebar-nav-item" data-section="meetings">
+                <i class="fa-solid fa-users-line"></i>
+                <span>Daily Meetings</span>
+            </div>
+            <div class="sidebar-nav-item" data-section="holidays">
+                <i class="fa-solid fa-umbrella-beach"></i>
+                <span>Company Holidays</span>
+            </div>
+            <div class="sidebar-nav-item" data-section="events">
+                <i class="fa-solid fa-star"></i>
+                <span>Company Events</span>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-info">
+                    <div class="sidebar-avatar">A</div>
+                    <div>
+                        <div class="sidebar-user-name">Administrator</div>
+                        <div class="sidebar-user-role">● Online</div>
+                    </div>
+                </div>
+                <button class="sidebar-logout" id="logout-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="admin-sidebar-overlay" id="admin-sidebar-overlay"></div>
+
+        <!-- ── MAIN AREA ─────────────────────────────── -->
+        <div class="admin-main">
+
+            <!-- Top Bar -->
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <button id="admin-mobile-menu" class="mobile-menu-trigger">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 id="topbar-title">Dashboard</h1>
+                    <p id="topbar-subtitle">Overview of all managed data</p>
+                </div>
+                <div class="topbar-actions">
+                    <button id="admin-today-btn" class="btn-admin btn-admin-primary">
+                        <i class="fa-solid fa-calendar-day"></i> Today
+                    </button>
+                    <!-- Theme Toggle -->
+                    <button id="admin-theme-toggle" class="theme-toggle-btn" title="Toggle light / dark theme"
+                        aria-label="Toggle theme">
+                        <span class="theme-icon-wrap">
+                            <i class="fa-solid fa-sun  theme-icon-light"></i>
+                            <i class="fa-solid fa-moon theme-icon-dark"></i>
+                        </span>
+                    </button>
+                    <a href="index.html" class="admin-back-btn">
+                        View Calendar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="admin-content">
+
+                <!-- ══ DASHBOARD PANEL ══════════════════════ -->
+                <section id="panel-dashboard" class="admin-panel active">
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon meetings"><i class="fa-solid fa-users-line"></i></div>
+                            <div class="stat-info">
+                                <p>Daily Meetings</p>
+                                <div class="stat-count" id="stat-meetings">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon holidays"><i class="fa-solid fa-umbrella-beach"></i></div>
+                            <div class="stat-info">
+                                <p>Company Holidays</p>
+                                <div class="stat-count" id="stat-holidays">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon events"><i class="fa-solid fa-star"></i></div>
+                            <div class="stat-info">
+                                <p>Company Events</p>
+                                <div class="stat-count" id="stat-events">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon clients"><i class="fa-solid fa-handshake"></i></div>
+                            <div class="stat-info">
+                                <p>Client Meetings</p>
+                                <div class="stat-count" id="stat-clients">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-section">
+                        <div class="section-header">
+                            <div>
+                                <h2>Upcoming Schedule</h2>
+                                <p>Next items across all categories</p>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="upcoming-tbody">
+                                    <tr>
+                                        <td colspan="5" class="empty-table"><i
+                                                class="fa-solid fa-calendar-xmark"></i>Loading…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- ══ MEETINGS PANEL ═══════════════════════ -->
+                <section id="panel-meetings" class="admin-panel">
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Daily Meetings</h2>
+                            <p>Manage all scheduled meetings and stand-ups</p>
+                        </div>
+                        <div class="toolbar">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="meetings-search" class="search-input"
+                                    placeholder="Search meetings…">
+                            </div>
+                            <button class="btn-admin btn-admin-primary" id="add-meeting-btn">
+                                <i class="fa-solid fa-plus"></i> Add Meeting
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Meeting Title</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Duration</th>
+                                    <th>Attendees</th>
+                                    <th>Recurrence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meetings-tbody"></tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <!-- ══ HOLIDAYS PANEL ═══════════════════════ -->
+                <section id="panel-holidays" class="admin-panel">
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Company Holidays</h2>
+                            <p>Manage company-specific holidays</p>
+                        </div>
+                        <div class="toolbar">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="holidays-search" class="search-input"
+                                    placeholder="Search holidays…">
+                            </div>
+                            <button class="btn-admin btn-admin-primary" id="add-holiday-btn">
+                                <i class="fa-solid fa-plus"></i> Add Holiday
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Holiday Name</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holidays-tbody"></tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <!-- ══ EVENTS PANEL ═════════════════════════ -->
+                <section id="panel-events" class="admin-panel">
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Company Events</h2>
+                            <p>Internal events, client meetings, and custom entries</p>
+                        </div>
+                        <div class="toolbar">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="events-search" class="search-input" placeholder="Search events…">
+                            </div>
+                            <select id="events-type-filter" class="filter-select">
+                                <option value="">All Types</option>
+                                <option value="internal">Internal</option>
+                                <option value="client">Client</option>
+                                <option value="private">Private</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <button class="btn-admin btn-admin-primary" id="add-event-admin-btn">
+                                <i class="fa-solid fa-plus"></i> Add Event
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Event Title</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Location</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="events-tbody"></tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+            </div><!-- /admin-content -->
+        </div><!-- /admin-main -->
+    </div><!-- /admin-shell -->
+
+
+    <!-- ══════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════ -->
+
+    <!-- Meeting Modal -->
+    <div id="meeting-modal" class="admin-modal-overlay hidden">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 id="meeting-modal-title"><i class="fa-solid fa-calendar-plus"></i> New Meeting</h3>
+                <button class="admin-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <form id="meeting-form" novalidate>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group" style="grid-column:1/-1">
+                            <label for="m-title">Meeting Title <span style="color:var(--admin-red)">*</span></label>
+                            <input type="text" id="m-title" placeholder="e.g. Morning Stand-up" required>
+                        </div>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="m-date">Date <span style="color:var(--admin-red)">*</span></label>
+                            <input type="date" id="m-date" required>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="m-time">Time</label>
+                            <input type="time" id="m-time">
+                        </div>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="m-duration">Duration</label>
+                            <select id="m-duration">
+                                <option value="">—</option>
+                                <option value="15 min">15 minutes</option>
+                                <option value="30 min">30 minutes</option>
+                                <option value="45 min">45 minutes</option>
+                                <option value="60 min">1 hour</option>
+                                <option value="90 min">1.5 hours</option>
+                                <option value="120 min">2 hours</option>
+                            </select>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="m-recurrence">Recurrence</label>
+                            <select id="m-recurrence">
+                                <option value="none">None (One-time)</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Bi-weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="m-attendees">Attendees / Teams</label>
+                            <input type="text" id="m-attendees" placeholder="e.g. Engineering Team">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="m-location">Location / Link</label>
+                            <input type="text" id="m-location" placeholder="e.g. Conference Room A">
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label for="m-notes">Notes / Agenda</label>
+                        <textarea id="m-notes" rows="3"
+                            placeholder="Optional meeting notes or agenda items…"></textarea>
+                    </div>
+                </form>
+                <div class="admin-form-actions">
+                    <button class="btn-admin btn-admin-outline" data-close-modal>Cancel</button>
+                    <button class="btn-admin btn-admin-primary" id="save-meeting-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Meeting
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holiday Modal -->
+    <div id="holiday-modal" class="admin-modal-overlay hidden">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 id="holiday-modal-title"><i class="fa-solid fa-umbrella-beach"></i> New Holiday</h3>
+                <button class="admin-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <form id="holiday-form" novalidate>
+                    <div class="admin-form-group">
+                        <label for="h-title">Holiday Name <span style="color:var(--admin-red)">*</span></label>
+                        <input type="text" id="h-title" placeholder="e.g. Diwali" required>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="h-date">Date <span style="color:var(--admin-red)">*</span></label>
+                            <input type="date" id="h-date" required>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="h-type">Holiday Type</label>
+                            <select id="h-type">
+                                <option value="gov">Government / National</option>
+                                <option value="custom">Company / Custom</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label for="h-description">Description</label>
+                        <textarea id="h-description" rows="2"
+                            placeholder="Brief description of the holiday…"></textarea>
+                    </div>
+                    <div class="admin-form-group" style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                        <input type="checkbox" id="h-optional" style="width:auto;accent-color:var(--admin-primary)">
+                        <label for="h-optional"
+                            style="text-transform:none;letter-spacing:0;font-size:0.875rem;margin:0;color:var(--text-1)">Mark
+                            as Optional Holiday</label>
+                    </div>
+                </form>
+                <div class="admin-form-actions">
+                    <button class="btn-admin btn-admin-outline" data-close-modal>Cancel</button>
+                    <button class="btn-admin btn-admin-primary" id="save-holiday-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Holiday
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Modal -->
+    <div id="event-modal-admin" class="admin-modal-overlay hidden">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 id="event-modal-title"><i class="fa-solid fa-star"></i> New Event</h3>
+                <button class="admin-modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="admin-modal-body">
+                <form id="event-form-admin" novalidate>
+                    <div class="admin-form-group">
+                        <label for="ev-title">Event Title <span style="color:var(--admin-red)">*</span></label>
+                        <input type="text" id="ev-title" placeholder="e.g. Q1 Planning Session" required>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="ev-date">Date <span style="color:var(--admin-red)">*</span></label>
+                            <input type="date" id="ev-date" required>
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="ev-type">Event Type</label>
+                            <select id="ev-type">
+                                <option value="internal">Internal Office Event</option>
+                                <option value="client">Client Meeting</option>
+                                <option value="gov">Government Holiday</option>
+                                <option value="custom">Custom / Private</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="ev-start">Start Time</label>
+                            <input type="time" id="ev-start">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="ev-end">End Time</label>
+                            <input type="time" id="ev-end">
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label for="ev-location">Location / Link</label>
+                        <input type="text" id="ev-location" placeholder="e.g. Board Room / Zoom link">
+                    </div>
+                    <div class="admin-form-group">
+                        <label for="ev-description">Description</label>
+                        <textarea id="ev-description" rows="3" placeholder="Optional event details…"></textarea>
+                    </div>
+                </form>
+                <div class="admin-form-actions">
+                    <button class="btn-admin btn-admin-outline" data-close-modal>Cancel</button>
+                    <button class="btn-admin btn-admin-primary" id="save-event-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Event
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Dialog -->
+    <div id="confirm-dialog-overlay" class="confirm-dialog-overlay hidden">
+        <div class="confirm-dialog">
+            <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3>Delete Confirmation</h3>
+            <p>Are you sure you want to delete <strong id="confirm-item-name"></strong>? This action cannot be undone.
+            </p>
+            <div class="confirm-actions">
+                <button class="btn-admin btn-admin-outline" id="confirm-no-btn">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+                <button class="btn-admin btn-admin-danger" id="confirm-yes-btn">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Script -->
+    <script type="module" src="js/admin.js"></script>
+</body>
+
+</html>
