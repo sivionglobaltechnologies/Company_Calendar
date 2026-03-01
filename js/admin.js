@@ -1,0 +1,742 @@
+/**
+ * admin.js
+ * Admin Panel — Authentication + Full CRUD for Meetings, Holidays & Events
+ * All data is persisted in localStorage under unique admin keys.
+ */
+
+'use strict';
+
+// ─── ADMIN CREDENTIALS (change as needed) ───────────────────────────────────
+const ADMIN_CREDENTIALS = {
+    username: 'admin',
+    password: 'Admin@123'
+};
+
+// ─── STORAGE KEYS ────────────────────────────────────────────────────────────
+const KEYS = {
+    session: 'admin_session',
+    meetings: 'admin_meetings',
+    holidays: 'admin_holidays',
+    events: 'admin_events'
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+    section: 'dashboard',   // current sidebar section
+    meetings: [],
+    holidays: [],
+    events: [],
+    editTarget: null,        // { type, id } when editing
+    confirmCallback: null    // function to run after confirm
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Apply saved theme before anything renders (avoids flash)
+    initAdminTheme();
+
+    loadAllData();
+
+    const isLoggedIn = sessionStorage.getItem(KEYS.session) === 'true';
+    if (isLoggedIn) {
+        showAdminShell();
+    } else {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('admin-shell').style.display = 'none';
+    }
+
+    bindLoginForm();
+    bindSidebar();
+    bindAddButtons();
+    bindModalCloseButtons();
+    bindSearchFilters();
+    bindConfirmDialog();
+    bindThemeToggle();
+    bindMobileMenu();
+    bindAdminToday();
+    refreshDashboard();
+
+    // EXPOSE TO GLOBALS (for HTML onclick handlers in module mode)
+    window.openMeetingModal = openMeetingModal;
+    window.openHolidayModal = openHolidayModal;
+    window.openEventModal = openEventModal;
+    window.confirmDelete = confirmDelete;
+});
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+const THEME_KEY = 'admin_theme'; // 'dark' (default) | 'light'
+
+function initAdminTheme() {
+    const saved = localStorage.getItem(THEME_KEY) || 'dark';
+    applyAdminTheme(saved);
+}
+
+function applyAdminTheme(theme) {
+    document.body.classList.toggle('admin-light', theme === 'light');
+    localStorage.setItem(THEME_KEY, theme);
+}
+
+function bindThemeToggle() {
+    document.getElementById('admin-theme-toggle')?.addEventListener('click', () => {
+        const isLight = document.body.classList.contains('admin-light');
+        applyAdminTheme(isLight ? 'dark' : 'light');
+        showToast(isLight ? 'Switched to Dark Mode' : 'Switched to Light Mode', 'info');
+    });
+}
+
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function bindLoginForm() {
+    const form = document.getElementById('login-form');
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+
+        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+            sessionStorage.setItem(KEYS.session, 'true');
+            errorEl.textContent = '';
+            showAdminShell();
+            showToast('Welcome back, Administrator!', 'success');
+        } else {
+            errorEl.textContent = 'Invalid username or password.';
+            document.getElementById('login-password').value = '';
+        }
+    });
+}
+
+function showAdminShell() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-shell').style.display = 'flex';
+    navigateTo(state.section);
+}
+
+function logout() {
+    sessionStorage.removeItem(KEYS.session);
+    document.getElementById('admin-shell').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    showToast('Logged out successfully.', 'info');
+}
+
+function bindMobileMenu() {
+    const mobileBtn = document.getElementById('admin-mobile-menu');
+    const sidebar = document.querySelector('.admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+
+    mobileBtn?.addEventListener('click', () => {
+        sidebar?.classList.add('open');
+    });
+
+    overlay?.addEventListener('click', () => {
+        sidebar?.classList.remove('open');
+    });
+
+    document.getElementById('admin-sidebar-close')?.addEventListener('click', () => {
+        sidebar?.classList.remove('open');
+    });
+}
+
+function bindAdminToday() {
+    const todayBtn = document.getElementById('admin-today-btn');
+    if (!todayBtn) return;
+
+    todayBtn.addEventListener('click', () => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const searchMap = {
+            dashboard: null,
+            meetings: 'meetings-search',
+            holidays: 'holidays-search',
+            events: 'events-search'
+        };
+
+        const inputId = searchMap[state.section];
+        if (inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.value = todayStr;
+                if (state.section === 'meetings') renderMeetingsTable(todayStr);
+                if (state.section === 'holidays') renderHolidaysTable(todayStr);
+                if (state.section === 'events') renderEventsTable(todayStr);
+            }
+        } else if (state.section === 'dashboard') {
+            refreshDashboard(todayStr);
+        }
+        showToast('Viewing schedule for Today', 'success');
+    });
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function bindSidebar() {
+    document.querySelectorAll('.sidebar-nav-item[data-section]').forEach(item => {
+        item.addEventListener('click', () => {
+            navigateTo(item.dataset.section);
+            // Close sidebar on mobile
+            if (window.innerWidth <= 1024) {
+                document.querySelector('.admin-sidebar').classList.remove('open');
+            }
+        });
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', logout);
+}
+
+function navigateTo(section) {
+    state.section = section;
+
+    // Update active state in sidebar
+    document.querySelectorAll('.sidebar-nav-item[data-section]').forEach(el => {
+        el.classList.toggle('active', el.dataset.section === section);
+    });
+
+    // Show correct panel
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`panel-${section}`);
+    if (panel) panel.classList.add('active');
+
+    // Update topbar
+    const titles = {
+        dashboard: ['Dashboard', 'Overview of all managed data'],
+        meetings: ['Daily Meetings', 'Create, edit and manage scheduled meetings'],
+        holidays: ['Company Holidays', 'Manage government and company holiday calendar'],
+        events: ['Company Events', 'Internal events, client meetings and custom entries']
+    };
+    document.getElementById('topbar-title').textContent = titles[section]?.[0] || '';
+    document.getElementById('topbar-subtitle').textContent = titles[section]?.[1] || '';
+
+    // Re-render tables
+    if (section === 'dashboard') refreshDashboard();
+    if (section === 'meetings') renderMeetingsTable();
+    if (section === 'holidays') renderHolidaysTable();
+    if (section === 'events') renderEventsTable();
+}
+
+// ─── DATA PERSISTENCE ─────────────────────────────────────────────────────────
+function loadAllData() {
+    state.meetings = loadFromLS(KEYS.meetings, getDefaultMeetings());
+    state.holidays = loadFromLS(KEYS.holidays, getDefaultHolidays());
+    state.events = loadFromLS(KEYS.events, getDefaultEvents());
+
+    // Auto-remove any meetings whose date is in the past
+    cleanupPastMeetings();
+}
+
+function loadFromLS(key, defaults) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : defaults;
+    } catch { return defaults; }
+}
+
+function saveToLS(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+}
+
+/**
+ * cleanupPastMeetings — automatically purges any meeting whose date is
+ * strictly before today. Called on every page load and after every save,
+ * so the calendar never shows stale finished meetings.
+ */
+function cleanupPastMeetings() {
+    const today = fmtDate(new Date());
+    const before = state.meetings.length;
+    state.meetings = state.meetings.filter(m => m.date >= today);
+    if (state.meetings.length !== before) {
+        saveToLS(KEYS.meetings, state.meetings);
+        console.info(`[Admin] Auto-removed ${before - state.meetings.length} past meeting(s).`);
+    }
+}
+
+// ─── DEFAULT SEED DATA ────────────────────────────────────────────────────────
+function getDefaultMeetings() {
+    const today = fmtDate(new Date());
+    return [
+        { id: uid(), title: 'Morning Stand-up', date: today, time: '09:00', duration: '30 min', attendees: 'Engineering Team', location: 'Conference Room A', notes: 'Daily sync', recurrence: 'daily' },
+        { id: uid(), title: 'Sprint Review', date: today, time: '14:00', duration: '60 min', attendees: 'All Teams', location: 'Main Hall', notes: 'End of sprint review', recurrence: 'biweekly' }
+    ];
+}
+
+function getDefaultHolidays() {
+    return [
+        { id: uid(), title: "Republic Day", date: '2026-01-26', type: 'gov', description: 'Indian Republic Day', optional: false },
+        { id: uid(), title: "Holi", date: '2026-03-04', type: 'gov', description: 'Festival of Colors', optional: false },
+        { id: uid(), title: "Good Friday", date: '2026-04-03', type: 'gov', description: 'Good Friday', optional: true },
+        { id: uid(), title: "Company Foundation", date: '2026-06-15', type: 'custom', description: 'Company Anniversary', optional: false },
+        { id: uid(), title: "Diwali", date: '2026-11-08', type: 'gov', description: 'Festival of Lights', optional: false },
+        { id: uid(), title: "Christmas", date: '2026-12-25', type: 'gov', description: 'Christmas Day', optional: false }
+    ];
+}
+
+function getDefaultEvents() {
+    const today = fmtDate(new Date());
+    return [
+        { id: uid(), title: 'Q1 Planning', date: today, type: 'internal', startTime: '10:00', endTime: '12:00', description: 'Quarterly planning session', location: 'Board Room' },
+        { id: uid(), title: 'Client Demo – Acme', date: today, type: 'client', startTime: '15:00', endTime: '16:00', description: 'Product demo for Acme Corp', location: 'Zoom' },
+        { id: uid(), title: 'Team Lunch', date: today, type: 'custom', startTime: '13:00', endTime: '14:00', description: 'Monthly team lunch', location: 'Cafeteria' }
+    ];
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function refreshDashboard() {
+    // Always run cleanup first so stat counts are accurate
+    cleanupPastMeetings();
+
+    setEl('stat-meetings', state.meetings.length);
+    setEl('stat-holidays', state.holidays.length);
+    setEl('stat-events', state.events.length);
+    setEl('stat-clients', state.events.filter(e => e.type === 'client').length);
+
+    // Build upcoming list — today and future, sorted by date, capped at 10
+    const today = fmtDate(new Date());
+    const upcoming = [
+        ...state.meetings.map(m => ({ ...m, _kind: 'meeting' })),
+        ...state.events.map(e => ({ ...e, _kind: 'event' })),
+        ...state.holidays.map(h => ({ ...h, _kind: 'holiday' }))
+    ].filter(i => i.date >= today)
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''))
+        .slice(0, 10);
+
+    const tbody = document.getElementById('upcoming-tbody');
+
+    if (!upcoming.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-table"><i class="fa-solid fa-calendar-xmark"></i>No upcoming items</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = upcoming.map(item => {
+        // Determine the edit action based on kind
+        const editFn = item._kind === 'meeting' ? `openMeetingModal('${item.id}')`
+            : item._kind === 'holiday' ? `openHolidayModal('${item.id}')`
+                : `openEventModal('${item.id}')`;
+
+        const deleteFn = item._kind === 'meeting' ? `confirmDelete('meetings','${item.id}','${esc(item.title)}')`
+            : item._kind === 'holiday' ? `confirmDelete('holidays','${item.id}','${esc(item.title)}')`
+                : `confirmDelete('events','${item.id}','${esc(item.title)}')`;
+
+        const badge = typeBadge(item._kind === 'meeting' ? 'meeting' : (item.type || item._kind));
+        const time = item.time || item.startTime || '—';
+
+        return `
+        <tr>
+            <td data-label="Title"><strong>${esc(item.title)}</strong></td>
+            <td data-label="Date" class="secondary">${formatDisplayDate(item.date)}</td>
+            <td data-label="Time" class="secondary">${time}</td>
+            <td data-label="Type">${badge}</td>
+            <td data-label="Actions">
+                <div class="td-actions">
+                    <button class="action-btn action-btn-edit"
+                            onclick="${editFn}" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn action-btn-delete"
+                            onclick="${deleteFn}" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ─── MEETINGS CRUD ────────────────────────────────────────────────────────────
+function renderMeetingsTable(filter = '') {
+    const data = filter
+        ? state.meetings.filter(m => m.title.toLowerCase().includes(filter) || m.attendees?.toLowerCase().includes(filter))
+        : state.meetings;
+
+    const tbody = document.getElementById('meetings-tbody');
+    tbody.innerHTML = data.length ? data.map(m => `
+        <tr>
+            <td data-label="Meeting Title"><strong>${esc(m.title)}</strong></td>
+            <td data-label="Date" class="secondary">${formatDisplayDate(m.date)}</td>
+            <td data-label="Time" class="secondary">${m.time || '—'}</td>
+            <td data-label="Duration" class="secondary">${m.duration || '—'}</td>
+            <td data-label="Attendees" class="secondary">${esc(m.attendees || '—')}</td>
+            <td data-label="Recurrence" class="secondary">${esc(m.recurrence || '—')}</td>
+            <td data-label="Actions">
+                <div class="td-actions">
+                    <button class="action-btn action-btn-edit" onclick="openMeetingModal('${m.id}')" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn action-btn-delete" onclick="confirmDelete('meetings','${m.id}','${esc(m.title)}')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('') : `<tr><td colspan="7" class="empty-table"><i class="fa-solid fa-calendar-check"></i>No meetings found. Click "+ Add Meeting" to create one.</td></tr>`;
+}
+
+function openMeetingModal(id = null) {
+    state.editTarget = id ? { type: 'meetings', id } : null;
+    const meeting = id ? state.meetings.find(m => m.id === id) : null;
+    const modal = document.getElementById('meeting-modal');
+    const title = document.getElementById('meeting-modal-title');
+
+    title.innerHTML = `<i class="fa-solid fa-calendar-plus"></i> ${id ? 'Edit Meeting' : 'New Meeting'}`;
+    resetForm('meeting-form');
+
+    if (meeting) {
+        setVal('m-title', meeting.title);
+        setVal('m-date', meeting.date);
+        setVal('m-time', meeting.time);
+        setVal('m-duration', meeting.duration);
+        setVal('m-attendees', meeting.attendees);
+        setVal('m-location', meeting.location);
+        setVal('m-recurrence', meeting.recurrence);
+        setVal('m-notes', meeting.notes);
+    } else {
+        setVal('m-date', fmtDate(new Date()));
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function saveMeeting() {
+    const title = getVal('m-title').trim();
+    const date = getVal('m-date');
+    if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
+
+    const data = {
+        id: state.editTarget?.id || uid(),
+        title,
+        date,
+        time: getVal('m-time'),
+        duration: getVal('m-duration'),
+        attendees: getVal('m-attendees'),
+        location: getVal('m-location'),
+        recurrence: getVal('m-recurrence'),
+        notes: getVal('m-notes')
+    };
+
+    if (state.editTarget) {
+        const idx = state.meetings.findIndex(m => m.id === data.id);
+        if (idx > -1) state.meetings[idx] = data;
+        showToast('Meeting updated successfully.', 'success');
+    } else {
+        state.meetings.push(data);
+        showToast('Meeting added successfully.', 'success');
+    }
+
+    saveToLS(KEYS.meetings, state.meetings);
+    notifyCalendarUpdate();
+    document.getElementById('meeting-modal').classList.add('hidden');
+    renderMeetingsTable();
+    refreshDashboard();
+}
+
+// ─── HOLIDAYS CRUD ────────────────────────────────────────────────────────────
+function renderHolidaysTable(filter = '') {
+    const data = filter
+        ? state.holidays.filter(h => h.title.toLowerCase().includes(filter) || h.type?.includes(filter))
+        : state.holidays;
+
+    const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+    const tbody = document.getElementById('holidays-tbody');
+
+    tbody.innerHTML = sorted.length ? sorted.map(h => `
+        <tr>
+            <td data-label="Holiday Name"><strong>${esc(h.title)}</strong></td>
+            <td data-label="Date" class="secondary">${formatDisplayDate(h.date)}</td>
+            <td data-label="Type">${typeBadge(h.type === 'gov' ? 'gov' : 'custom')}</td>
+            <td data-label="Description" class="secondary">${esc(h.description || '—')}</td>
+            <td data-label="Status" class="secondary">${h.optional ? '<span style="color:var(--admin-yellow)">Optional</span>' : '<span style="color:var(--admin-green)">Mandatory</span>'}</td>
+            <td data-label="Actions">
+                <div class="td-actions">
+                    <button class="action-btn action-btn-edit" onclick="openHolidayModal('${h.id}')" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn action-btn-delete" onclick="confirmDelete('holidays','${h.id}','${esc(h.title)}')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('') : `<tr><td colspan="6" class="empty-table"><i class="fa-solid fa-umbrella-beach"></i>No holidays found.</td></tr>`;
+}
+
+function openHolidayModal(id = null) {
+    state.editTarget = id ? { type: 'holidays', id } : null;
+    const holiday = id ? state.holidays.find(h => h.id === id) : null;
+    const modal = document.getElementById('holiday-modal');
+    const title = document.getElementById('holiday-modal-title');
+
+    title.innerHTML = `<i class="fa-solid fa-umbrella-beach"></i> ${id ? 'Edit Holiday' : 'New Holiday'}`;
+    resetForm('holiday-form');
+
+    if (holiday) {
+        setVal('h-title', holiday.title);
+        setVal('h-date', holiday.date);
+        setVal('h-type', holiday.type);
+        setVal('h-description', holiday.description);
+        document.getElementById('h-optional').checked = holiday.optional || false;
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function saveHoliday() {
+    const title = getVal('h-title').trim();
+    const date = getVal('h-date');
+    if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
+
+    const data = {
+        id: state.editTarget?.id || uid(),
+        title,
+        date,
+        type: getVal('h-type') || 'gov',
+        description: getVal('h-description'),
+        optional: document.getElementById('h-optional').checked
+    };
+
+    if (state.editTarget) {
+        const idx = state.holidays.findIndex(h => h.id === data.id);
+        if (idx > -1) state.holidays[idx] = data;
+        showToast('Holiday updated successfully.', 'success');
+    } else {
+        state.holidays.push(data);
+        showToast('Holiday added successfully.', 'success');
+    }
+
+    saveToLS(KEYS.holidays, state.holidays);
+    notifyCalendarUpdate();
+    // events.js reads admin_holidays directly on each calendar render — no extra sync needed
+    document.getElementById('holiday-modal').classList.add('hidden');
+    renderHolidaysTable();
+    refreshDashboard();
+}
+
+/**
+ * NOTE: Admin data is stored in dedicated localStorage keys (admin_meetings,
+ * admin_holidays, admin_events). The main calendar's events.js reads directly
+ * from those keys on every render — no intermediate sync to calendar_events needed.
+ */
+
+
+// ─── COMPANY EVENTS CRUD ──────────────────────────────────────────────────────
+function renderEventsTable(filter = '', typeFilter = '') {
+    let data = [...state.events];
+    if (filter) data = data.filter(e => e.title.toLowerCase().includes(filter) || e.description?.toLowerCase().includes(filter));
+    if (typeFilter) data = data.filter(e => e.type === typeFilter);
+
+    const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+    const tbody = document.getElementById('events-tbody');
+
+    tbody.innerHTML = sorted.length ? sorted.map(ev => `
+        <tr>
+            <td data-label="Event Title"><strong>${esc(ev.title)}</strong></td>
+            <td data-label="Date" class="secondary">${formatDisplayDate(ev.date)}</td>
+            <td data-label="Time" class="secondary">${ev.startTime || '—'}${ev.endTime ? ' – ' + ev.endTime : ''}</td>
+            <td data-label="Type">${typeBadge(ev.type)}</td>
+            <td data-label="Location" class="secondary">${esc(ev.location || '—')}</td>
+            <td data-label="Description" class="secondary" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.description || '—')}</td>
+            <td data-label="Actions">
+                <div class="td-actions">
+                    <button class="action-btn action-btn-edit" onclick="openEventModal('${ev.id}')" title="Edit">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn action-btn-delete" onclick="confirmDelete('events','${ev.id}','${esc(ev.title)}')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('') : `<tr><td colspan="7" class="empty-table"><i class="fa-solid fa-star"></i>No events found.</td></tr>`;
+}
+
+function openEventModal(id = null) {
+    state.editTarget = id ? { type: 'events', id } : null;
+    const ev = id ? state.events.find(e => e.id === id) : null;
+    const modal = document.getElementById('event-modal-admin');
+    const title = document.getElementById('event-modal-title');
+
+    title.innerHTML = `<i class="fa-solid fa-star"></i> ${id ? 'Edit Event' : 'New Event'}`;
+    resetForm('event-form-admin');
+
+    if (ev) {
+        setVal('ev-title', ev.title);
+        setVal('ev-date', ev.date);
+        setVal('ev-type', ev.type);
+        setVal('ev-start', ev.startTime);
+        setVal('ev-end', ev.endTime);
+        setVal('ev-location', ev.location);
+        setVal('ev-description', ev.description);
+    } else {
+        setVal('ev-date', fmtDate(new Date()));
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function saveEvent() {
+    const title = getVal('ev-title').trim();
+    const date = getVal('ev-date');
+    if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
+
+    const data = {
+        id: state.editTarget?.id || uid(),
+        title,
+        date,
+        type: getVal('ev-type') || 'internal',
+        startTime: getVal('ev-start') || null,
+        endTime: getVal('ev-end') || null,
+        location: getVal('ev-location'),
+        description: getVal('ev-description'),
+        isAdminEvent: true
+    };
+
+    if (state.editTarget) {
+        const idx = state.events.findIndex(e => e.id === data.id);
+        if (idx > -1) state.events[idx] = data;
+        showToast('Event updated successfully.', 'success');
+    } else {
+        state.events.push(data);
+        showToast('Event added successfully.', 'success');
+    }
+
+    saveToLS(KEYS.events, state.events);
+    notifyCalendarUpdate();
+    // events.js reads admin_events directly on each calendar render — no extra sync needed
+    document.getElementById('event-modal-admin').classList.add('hidden');
+    renderEventsTable();
+    refreshDashboard();
+}
+
+
+
+// ─── DELETE WITH CONFIRM ──────────────────────────────────────────────────────
+function confirmDelete(type, id, name) {
+    document.getElementById('confirm-item-name').textContent = `"${name}"`;
+    document.getElementById('confirm-dialog-overlay').classList.remove('hidden');
+    state.confirmCallback = () => {
+        state[type] = state[type].filter(item => item.id !== id);
+        saveToLS(KEYS[type], state[type]);
+        notifyCalendarUpdate();
+        // events.js reads from admin keys directly — calendar auto-refreshes on next render
+        showToast('Item deleted successfully.', 'success');
+        if (type === 'meetings') renderMeetingsTable();
+        if (type === 'holidays') renderHolidaysTable();
+        if (type === 'events') renderEventsTable();
+        refreshDashboard();
+    };
+}
+
+function bindConfirmDialog() {
+    document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+        state.confirmCallback?.();
+        state.confirmCallback = null;
+        document.getElementById('confirm-dialog-overlay').classList.add('hidden');
+    });
+    document.getElementById('confirm-no-btn').addEventListener('click', () => {
+        state.confirmCallback = null;
+        document.getElementById('confirm-dialog-overlay').classList.add('hidden');
+    });
+}
+
+// ─── ADD BUTTON BINDINGS ──────────────────────────────────────────────────────
+function bindAddButtons() {
+    document.getElementById('add-meeting-btn')?.addEventListener('click', () => openMeetingModal());
+    document.getElementById('add-holiday-btn')?.addEventListener('click', () => openHolidayModal());
+    document.getElementById('add-event-admin-btn')?.addEventListener('click', () => openEventModal());
+
+    document.getElementById('save-meeting-btn')?.addEventListener('click', saveMeeting);
+    document.getElementById('save-holiday-btn')?.addEventListener('click', saveHoliday);
+    document.getElementById('save-event-btn')?.addEventListener('click', saveEvent);
+}
+
+// ─── MODAL CLOSE ──────────────────────────────────────────────────────────────
+function bindModalCloseButtons() {
+    document.querySelectorAll('.admin-modal-close, [data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.admin-modal-overlay')?.classList.add('hidden');
+        });
+    });
+}
+
+// ─── SEARCH & FILTER ──────────────────────────────────────────────────────────
+function bindSearchFilters() {
+    document.getElementById('meetings-search')?.addEventListener('input', e => {
+        renderMeetingsTable(e.target.value.toLowerCase());
+    });
+    document.getElementById('holidays-search')?.addEventListener('input', e => {
+        renderHolidaysTable(e.target.value.toLowerCase());
+    });
+    document.getElementById('events-search')?.addEventListener('input', e => {
+        renderEventsTable(e.target.value.toLowerCase(), document.getElementById('events-type-filter')?.value);
+    });
+    document.getElementById('events-type-filter')?.addEventListener('change', e => {
+        renderEventsTable(document.getElementById('events-search')?.value.toLowerCase(), e.target.value);
+    });
+}
+
+// ─── UTILITY HELPERS ──────────────────────────────────────────────────────────
+function uid() {
+    return 'admin-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+function fmtDate(d) {
+    return d.toISOString().split('T')[0];
+}
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function typeBadge(type) {
+    const labels = {
+        gov: 'Government',
+        client: 'Client',
+        internal: 'Internal',
+        custom: 'Custom',
+        holiday: 'Holiday',
+        meeting: 'Meeting'
+    };
+    return `<span class="type-badge ${type}">${labels[type] || type}</span>`;
+}
+
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function setEl(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+}
+
+function getVal(id) {
+    return document.getElementById(id)?.value || '';
+}
+
+function resetForm(formId) {
+    document.getElementById(formId)?.reset();
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(message, type = 'info') {
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa-solid ${icons[type]}"></i><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 350);
+    }, 3200);
+}
+
+// ─── CROSS-TAB SYNC HELPER ────────────────────────────────────────────────
+function notifyCalendarUpdate() {
+    // Notify main calendar in other tabs that data changed
+    window.localStorage.setItem('calendar_sync_trigger', Date.now());
+}
