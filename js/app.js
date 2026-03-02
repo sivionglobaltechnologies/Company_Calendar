@@ -37,22 +37,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-    document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    function openSidebar() {
         sidebar.classList.add('open');
-    });
+        sidebarOverlay?.classList.add('visible');
+    }
 
-    sidebarOverlay?.addEventListener('click', () => {
+    function closeSidebar() {
         sidebar.classList.remove('open');
-    });
+        sidebarOverlay?.classList.remove('visible');
+    }
 
-    document.getElementById('mobile-sidebar-close')?.addEventListener('click', () => {
-        sidebar.classList.remove('open');
+    function toggleSidebar() {
+        sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    }
+
+    document.getElementById('mobile-menu-btn')?.addEventListener('click', toggleSidebar);
+
+    // Close when overlay (backdrop) is tapped
+    sidebarOverlay?.addEventListener('click', closeSidebar);
+
+    // Close when tapping the main workspace area on mobile
+    document.querySelector('.main-workspace')?.addEventListener('click', () => {
+        if (window.innerWidth <= 1024 && sidebar.classList.contains('open')) {
+            closeSidebar();
+        }
     });
 
     // Close sidebar on mini-day click if mobile
     document.getElementById('mini-calendar-grid')?.addEventListener('click', (e) => {
         if (e.target.classList.contains('mini-day') && window.innerWidth <= 1024) {
-            sidebar.classList.remove('open');
+            closeSidebar();
         }
     });
 
@@ -96,6 +110,52 @@ document.addEventListener('DOMContentLoaded', () => {
             calendar.render();
         }
     });
+
+    // 11. Mobile Bottom Navigation Bar
+    const mobileNav = document.getElementById('mobile-bottom-nav');
+    if (mobileNav) {
+        // Menu — open sidebar
+        document.getElementById('mobile-nav-menu')?.addEventListener('click', toggleSidebar);
+
+        // Today — same as desktop today button
+        document.getElementById('mobile-nav-today')?.addEventListener('click', () => {
+            calendar.goToToday();
+        });
+
+        // Add Event — open the add event modal
+        document.getElementById('mobile-nav-add')?.addEventListener('click', () => {
+            const selDate = calendar.formatDate(calendar.selectedDate);
+            document.getElementById('event-date').value = selDate;
+            openEventModal();
+        });
+
+        // Theme — toggle and sync both icons (desktop + mobile)
+        const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+        document.getElementById('mobile-nav-theme')?.addEventListener('click', () => {
+            themeManager.toggle();
+            // sync mobile icon to match current theme
+            const isDark = document.body.classList.contains('dark-mode');
+            if (mobileThemeIcon) {
+                mobileThemeIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            }
+            // sync desktop icon too
+            const desktopIcon = document.querySelector('#theme-toggle i');
+            if (desktopIcon) {
+                desktopIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            }
+        });
+
+        // View — cycle day → week → month → year → day …
+        const viewCycle = ['day', 'week', 'month', 'year'];
+        document.getElementById('mobile-nav-view')?.addEventListener('click', () => {
+            const current = calendar.viewMode;
+            const idx = viewCycle.indexOf(current);
+            const next = viewCycle[(idx + 1) % viewCycle.length];
+            calendar.changeViewMode(next);
+            const viewSelect = document.getElementById('view-select');
+            if (viewSelect) viewSelect.value = next;
+        });
+    }
 
 });
 

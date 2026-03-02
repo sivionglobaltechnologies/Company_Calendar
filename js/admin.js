@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindThemeToggle();
     bindMobileMenu();
     bindAdminToday();
+    bindAdminBottomNav();
     refreshDashboard();
 
     // EXPOSE TO GLOBALS (for HTML onclick handlers in module mode)
@@ -127,7 +128,7 @@ function bindMobileMenu() {
     const overlay = document.getElementById('admin-sidebar-overlay');
 
     mobileBtn?.addEventListener('click', () => {
-        sidebar?.classList.add('open');
+        sidebar?.classList.toggle('open');
     });
 
     overlay?.addEventListener('click', () => {
@@ -167,6 +168,58 @@ function bindAdminToday() {
         showToast('Viewing schedule for Today', 'success');
     });
 }
+
+// ─── MOBILE BOTTOM NAV ────────────────────────────────────────────────────────
+function bindAdminBottomNav() {
+    const nav = document.getElementById('admin-bottom-nav');
+    if (!nav) return;
+
+    const sidebar = document.querySelector('.admin-sidebar');
+
+    // Menu — open sidebar
+    document.getElementById('anav-menu')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('open');
+    });
+
+    // Dashboard — navigate to dashboard
+    document.getElementById('anav-dashboard')?.addEventListener('click', () => {
+        navigateTo('dashboard');
+        updateAnavActive('dashboard');
+    });
+
+    // FAB Add — open the relevant "Add" modal for the current section
+    document.getElementById('anav-add')?.addEventListener('click', () => {
+        if (state.section === 'meetings') openMeetingModal();
+        else if (state.section === 'holidays') openHolidayModal();
+        else if (state.section === 'events') openEventModal();
+        else openMeetingModal(); // default if on dashboard
+    });
+
+    // Theme — toggle and sync icon
+    const anavThemeIcon = document.getElementById('anav-theme-icon');
+    document.getElementById('anav-theme-mobile')?.addEventListener('click', () => {
+        const isLight = document.body.classList.contains('admin-light');
+        applyAdminTheme(isLight ? 'dark' : 'light');
+        showToast(isLight ? 'Switched to Dark Mode' : 'Switched to Light Mode', 'info');
+        // Update mobile icon
+        if (anavThemeIcon) {
+            anavThemeIcon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+    });
+
+    // Sync active state whenever navigateTo is called
+    const origNavigateTo = navigateTo;
+    window._adminNavHook = (section) => updateAnavActive(section);
+}
+
+function updateAnavActive(section) {
+    // Highlight the matching section button in the bottom nav
+    const map = { dashboard: 'anav-dashboard' };
+    document.querySelectorAll('#admin-bottom-nav .anav-item').forEach(el => el.classList.remove('active'));
+    const activeId = map[section];
+    if (activeId) document.getElementById(activeId)?.classList.add('active');
+}
+
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function bindSidebar() {

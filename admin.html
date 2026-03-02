@@ -72,7 +72,6 @@
                     <span>Calendar</span>
                     <span class="brand-badge">Admin</span>
                 </div>
-                <button id="admin-sidebar-close" class="mobile-only-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <p class="sidebar-section-label">Navigation</p>
@@ -119,9 +118,6 @@
             <!-- Top Bar -->
             <div class="admin-topbar">
                 <div class="admin-topbar-left">
-                    <button id="admin-mobile-menu" class="mobile-menu-trigger">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
                     <h1 id="topbar-title">Dashboard</h1>
                     <p id="topbar-subtitle">Overview of all managed data</p>
                 </div>
@@ -129,16 +125,8 @@
                     <button id="admin-today-btn" class="btn-admin btn-admin-primary">
                         <i class="fa-solid fa-calendar-day"></i> Today
                     </button>
-                    <!-- Theme Toggle -->
-                    <button id="admin-theme-toggle" class="theme-toggle-btn" title="Toggle light / dark theme"
-                        aria-label="Toggle theme">
-                        <span class="theme-icon-wrap">
-                            <i class="fa-solid fa-sun  theme-icon-light"></i>
-                            <i class="fa-solid fa-moon theme-icon-dark"></i>
-                        </span>
-                    </button>
-                    <a href="index.html" class="admin-back-btn">
-                        View Calendar
+                    <a href="index.html" class="btn-admin btn-admin-primary" style="text-decoration:none;">
+                        <i class="fa-solid fa-calendar-days"></i> View Calendar
                     </a>
                 </div>
             </div>
@@ -214,10 +202,9 @@
                 <section id="panel-meetings" class="admin-panel">
 
                     <div class="section-header">
-                        <div>
-                            <h2>Daily Meetings</h2>
-                            <p>Manage all scheduled meetings and stand-ups</p>
-                        </div>
+                        <!-- <div>
+                             <h2>Daily Meetings</h2>
+                        </div> -->
                         <div class="toolbar">
                             <div class="search-input-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -253,10 +240,9 @@
                 <section id="panel-holidays" class="admin-panel">
 
                     <div class="section-header">
-                        <div>
+                        <!-- <div>
                             <h2>Company Holidays</h2>
-                            <p>Manage company-specific holidays</p>
-                        </div>
+                        </div> -->
                         <div class="toolbar">
                             <div class="search-input-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -291,10 +277,9 @@
                 <section id="panel-events" class="admin-panel">
 
                     <div class="section-header">
-                        <div>
+                        <!-- <div>
                             <h2>Company Events</h2>
-                            <p>Internal events, client meetings, and custom entries</p>
-                        </div>
+                        </div> -->
                         <div class="toolbar">
                             <div class="search-input-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -336,6 +321,29 @@
         </div><!-- /admin-main -->
     </div><!-- /admin-shell -->
 
+    <!-- Admin Mobile Bottom Navigation Bar (mobile only, hidden on desktop) -->
+    <nav class="admin-bottom-nav" id="admin-bottom-nav" aria-label="Admin mobile navigation">
+        <button class="anav-item" id="anav-menu" aria-label="Open menu">
+            <i class="fa-solid fa-bars"></i>
+            <span>Menu</span>
+        </button>
+        <button class="anav-item" id="anav-dashboard" aria-label="Dashboard" data-section="dashboard">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Dashboard</span>
+        </button>
+        <button class="anav-item anav-add" id="anav-add" aria-label="Add item">
+            <div class="admin-fab"><i class="fa-solid fa-plus"></i></div>
+            <span class="anav-fab-label">Add</span>
+        </button>
+        <button class="anav-item" id="anav-theme-mobile" aria-label="Toggle theme">
+            <i class="fa-solid fa-moon" id="anav-theme-icon"></i>
+            <span>Theme</span>
+        </button>
+        <a href="index.html" class="anav-item" id="anav-calendar" aria-label="View calendar">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Calendar</span>
+        </a>
+    </nav>
 
     <!-- ══════════════════════════════════════════════════
      MODALS

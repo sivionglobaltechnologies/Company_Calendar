@@ -20,7 +20,7 @@
         <aside class="sidebar">
             <div class="brand">
                 <div class="brand-text">Calendar</div>
-                <button id="mobile-sidebar-close" class="mobile-only-btn"><i class="fa-solid fa-xmark"></i></button>
+
             </div>
 
             <div class="mini-calendar-container">
@@ -107,7 +107,7 @@
             </div>
         </main>
 
-        <!-- Day Details Panel (Right Slide-out) -->
+        <!-- Day Details Panel (Bottom Sheet on mobile, right slide-out on desktop) -->
         <aside id="day-panel" class="day-panel">
             <div class="panel-header">
                 <h2 id="panel-date-display">Selected Date</h2>
@@ -124,6 +124,30 @@
             </div>
         </aside>
     </div>
+
+    <!-- Mobile Bottom Navigation Bar (hidden on desktop via CSS) -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Mobile navigation">
+        <button class="nav-item" id="mobile-nav-menu" aria-label="Open menu">
+            <i class="fa-solid fa-bars"></i>
+            <span>Menu</span>
+        </button>
+        <button class="nav-item" id="mobile-nav-today" aria-label="Go to today">
+            <i class="fa-solid fa-calendar-day"></i>
+            <span>Today</span>
+        </button>
+        <button class="nav-item nav-add" id="mobile-nav-add" aria-label="Add event">
+            <div class="fab-circle"><i class="fa-solid fa-plus"></i></div>
+            <span class="fab-label">Add</span>
+        </button>
+        <button class="nav-item" id="mobile-nav-theme" aria-label="Toggle theme">
+            <i class="fa-solid fa-moon" id="mobile-theme-icon"></i>
+            <span>Theme</span>
+        </button>
+        <button class="nav-item" id="mobile-nav-view" aria-label="Change view">
+            <i class="fa-solid fa-table-cells-large"></i>
+            <span>View</span>
+        </button>
+    </nav>
 
     <!-- Add/Edit Event Modal -->
     <div id="event-modal" class="modal-overlay hidden">
