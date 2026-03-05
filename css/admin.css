@@ -791,6 +791,30 @@ textarea {
   transform: translateY(-1px);
 }
 
+/* Icon-only round theme toggle button */
+.btn-admin-icon {
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  color: var(--text-2);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+
+.btn-admin-icon:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+  transform: rotate(20deg) scale(1.1);
+  box-shadow: 0 0 0 3px var(--admin-primary-glow);
+}
+
 /* ── DATA TABLE ───────────────────────────────────────- */
 .table-wrapper {
   background: var(--admin-surface);
@@ -1414,8 +1438,9 @@ textarea {
     color: var(--admin-primary);
   }
 
-  /* Hide Today btn on mobile — use bottom nav */
-  #admin-today-btn {
+  /* Hide Today btn and theme toggle on mobile — use bottom nav */
+  #admin-today-btn,
+  #admin-theme-toggle {
     display: none;
   }
 
@@ -1435,37 +1460,52 @@ textarea {
     box-shadow: none;
   }
 
-  /* ─ Content padding ─ */
+  /* ─ Content: flex column so cards + table fit without page scroll ─ */
   .admin-content {
     padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0;
   }
 
-  /* ─ Stats grid: 2x2 ─ */
+  /* Dashboard panel fills admin-content height */
+  .admin-panel.active {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    animation: slideUp 0.25s ease;
+  }
+
+  /* ─ Stats grid: compact 2x2, never scrolls (flex-shrink:0) ─ */
   .stats-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
   }
 
   .stat-card {
-    padding: 1rem;
-    gap: 0.75rem;
+    padding: 0.75rem;
+    gap: 0.6rem;
     border-radius: var(--radius-sm);
   }
 
   .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+    border-radius: 9px;
   }
 
   .stat-count {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
   }
 
   .stat-info p {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 
   /* ─ Section header ─ */
@@ -1473,6 +1513,14 @@ textarea {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.6rem;
+  }
+
+  /* ─ Recent/table section: takes remaining space, scrolls internally ─ */
+  .recent-section {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .section-header h2 {
@@ -1502,13 +1550,17 @@ textarea {
     flex-shrink: 0;
   }
 
-  /* ─ Table → card view ─ */
+  /* ─ Table → card view, scrolls within panel ─ */
   .table-wrapper {
     overflow-x: visible;
+    overflow-y: auto;
     background: transparent;
     border: none;
     box-shadow: none;
     border-radius: 0;
+    flex: 1;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .data-table {
@@ -1522,56 +1574,66 @@ textarea {
   .data-table tr {
     display: block;
     background: var(--admin-surface);
-    margin-bottom: 0.875rem;
-    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--admin-border);
-    padding: 1rem;
+    padding: 0.65rem 0.75rem;
     position: relative;
     transition: box-shadow var(--transition);
   }
 
   .data-table tr:hover {
-    box-shadow: var(--shadow);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Fields grid: 2 columns inside each card */
+  .data-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem 0.75rem;
+    align-items: start;
   }
 
   .data-table td {
     display: block;
-    padding: 0.35rem 0;
+    padding: 0.2rem 0;
     text-align: left;
     border-bottom: none;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     color: var(--text-1);
   }
 
   .data-table td.secondary {
     color: var(--text-2);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .data-table td::before {
     content: attr(data-label);
     font-weight: 800;
     text-transform: uppercase;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--text-3);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.07em;
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }
 
+  /* Actions row: full-width, spans both columns */
   .td-actions {
+    grid-column: 1 / -1;
     justify-content: flex-start;
-    margin-top: 0.75rem;
-    gap: 0.75rem;
-    padding-top: 0.75rem;
+    margin-top: 0.3rem;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
     border-top: 1px solid var(--admin-border);
   }
 
   .action-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    font-size: 0.8rem;
   }
 
   /* ─ Admin modals → slide-up bottom sheet ─ */
@@ -2006,7 +2068,10 @@ body.admin-light .theme-toggle-btn:hover {
   flex-shrink: 0;
 }
 
+/* Tablet sidebar + table fix only — topbar handled by first 1024px block above */
 @media (max-width: 1024px) {
+
+  /* Sidebar slide-in (safe to repeat — same values) */
   .admin-sidebar {
     position: fixed;
     left: 0;
@@ -2030,40 +2095,7 @@ body.admin-light .theme-toggle-btn:hover {
     display: flex;
   }
 
-  .admin-topbar {
-    padding: 0.75rem 1rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-    height: auto;
-  }
-
-  .admin-topbar-left {
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
-
-  .admin-topbar-left h1 {
-    font-size: 1.25rem;
-  }
-
-  .admin-topbar-left p {
-    display: none;
-    /* Hide subtitle on mobile to save space */
-  }
-
-  .topbar-actions {
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .admin-back-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
+  /* Table minimum width for horizontal scroll on tablet */
   .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -2143,5 +2175,129 @@ body.admin-light .theme-toggle-btn:hover {
     justify-content: flex-start;
     margin-top: 0.5rem;
     gap: 1rem;
+  }
+
+  /* Toolbar full-width stacking on mobile */
+  .toolbar {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .search-input-wrap {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  /* Ensure action buttons have adequate tap targets */
+  .action-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* ── Login card on small screens ── */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 2rem 1.25rem;
+    border-radius: 16px;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+    max-width: none;
+  }
+
+  .login-card h1 {
+    font-size: 1.35rem;
+  }
+
+  .login-btn {
+    font-size: 0.9rem;
+    padding: 0.7rem;
+  }
+
+  /* Toolbar wraps on narrow screens */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar .search-input-wrap {
+    flex: unset;
+    width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    padding-right: 2rem;
+  }
+
+  .toolbar .btn-admin {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Extra small phones for admin (<=380px) ── */
+@media (max-width: 380px) {
+  .login-card {
+    padding: 1.5rem 1rem;
+    margin: 0.75rem;
+    width: calc(100% - 1.5rem);
+  }
+
+  .login-card h1 {
+    font-size: 1.15rem;
+  }
+
+  .stat-card {
+    padding: 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .stat-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .stat-count {
+    font-size: 1.2rem;
+  }
+
+  .stat-info p {
+    font-size: 0.6rem;
+  }
+
+  .admin-topbar-left h1 {
+    font-size: 0.85rem;
+  }
+
+  .topbar-actions .btn-admin {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .admin-bottom-nav {
+    height: 58px;
+  }
+
+  #admin-shell {
+    padding-bottom: 58px;
+  }
+
+  .section-header h2 {
+    font-size: 0.95rem;
+  }
+
+  .admin-content {
+    padding: 0.5rem;
+  }
+
+  .action-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
   }
 }

@@ -70,7 +70,11 @@
             <header class="main-header">
                 <div class="header-left">
                     <button id="mobile-menu-btn" class="icon-btn mobile-only"><i class="fa-solid fa-bars"></i></button>
-                    <button id="today-btn" class="btn btn-outline">Today</button>
+                    <button id="today-btn" class="btn btn-outline" title="Go to Today"
+                        aria-label="Go to Today">Today</button>
+
+                    <!-- Mobile brand label (shown only on mobile) -->
+                    <span class="header-brand-label"><i class="fa-solid fa-calendar-days"></i> Calendar</span>
 
                     <!-- View Dropdown Toggle -->
                     <select id="view-select" class="view-select">

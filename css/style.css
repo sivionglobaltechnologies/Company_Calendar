@@ -904,47 +904,65 @@ textarea {
     z-index: 60;
     background: var(--bg-surface);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible;
   }
 
-  .main-header::-webkit-scrollbar {
-    display: none;
-  }
 
-  /* left group: menu icon + Today + view-select */
+  /* left group: brand label */
   .header-left {
     display: flex;
     align-items: center;
     gap: 0.35rem;
     flex-shrink: 0;
-    flex: 1;
+    flex: 0 0 auto;
   }
 
-  /* Month nav inline — prev ‹ Title › next */
+  /* Mobile brand label — "Calendar" with icon */
+  .header-brand-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .header-brand-label i {
+    font-size: 0.85rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Month nav inline — prev ‹ Title › next — always visible, centred */
   .month-nav {
     display: flex;
     position: static;
     transform: none;
     align-items: center;
     gap: 0.2rem;
-    flex-shrink: 0;
+    flex: 1;
+    justify-content: center;
   }
 
   .month-nav h2 {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-weight: 800;
     text-align: center;
     color: var(--text-1);
     white-space: nowrap;
-    padding: 0 0.2rem;
-    min-width: 72px;
+    padding: 0 0.25rem;
+    min-width: 110px;
   }
 
-  /* ── Shared pill size for ALL header buttons ── */
-  #today-btn,
-  .view-select,
+  /* ── Shared pill size for nav buttons ── */
   #add-event-header-btn,
   #main-prev,
   #main-next,
@@ -952,7 +970,6 @@ textarea {
     height: var(--mob-btn-h);
     min-height: var(--mob-btn-h);
     max-height: var(--mob-btn-h);
-    font-size: 0.72rem;
     flex-shrink: 0;
     border-radius: var(--radius-full);
     display: inline-flex;
@@ -962,38 +979,15 @@ textarea {
     line-height: 1;
   }
 
-  /* Today — outline pill */
+  /* Today button — hidden on mobile (use bottom nav Today instead) */
   #today-btn {
-    padding: 0 0.55rem;
-    font-weight: 700;
-    font-size: 0.68rem;
+    display: none !important;
   }
 
-  /* View select — match Today pill exactly, override global select padding */
+  /* Hide view-select (month dropdown) on mobile — use bottom nav View instead */
   #view-select,
   .view-select {
-    height: var(--mob-btn-h);
-    min-height: var(--mob-btn-h);
-    max-height: var(--mob-btn-h);
-    padding: 0 1.5rem 0 0.5rem !important;
-    /* override global select padding */
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--primary);
-    border: 1px solid var(--primary);
-    border-radius: var(--radius-full) !important;
-    background-color: var(--bg-surface);
-    background-size: 0.75rem;
-    background-position: right 0.3rem center;
-    cursor: pointer;
-    box-shadow: none;
-    line-height: 1;
-    appearance: none;
-    -webkit-appearance: none;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
+    display: none !important;
   }
 
   /* Hide Add Event btn from top header on mobile (use bottom nav FAB instead) */
@@ -1039,17 +1033,14 @@ textarea {
     flex-shrink: 0;
   }
 
-  /* header-right: show on mobile (Add Event lives here) */
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-shrink: 0;
-  }
-
   /* Hide desktop theme toggle — in bottom nav */
   #theme-toggle {
     display: none;
+  }
+
+  /* header-right is empty on mobile — hide it */
+  .header-right {
+    display: none !important;
   }
 
   /* ─ Grid Header (day labels) ─ */
@@ -1409,6 +1400,11 @@ textarea {
     font-size: 1.3rem;
   }
 
+  /* Day view event cards */
+  .day-view-events .event-card {
+    padding: 0.9rem 1rem;
+  }
+
   /* Year view */
   .year-view-container {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1420,6 +1416,24 @@ textarea {
     padding: 1rem;
   }
 
+  .year-month-wrapper h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Week view — horizontal scroll */
+  .week-view-container {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.75rem;
+  }
+
+  .week-grid {
+    min-width: 560px;
+  }
+
   /* Sidebar inside mobile */
   .sidebar {
     width: min(320px, 88vw);
@@ -1428,6 +1442,22 @@ textarea {
 
   .brand-text {
     font-size: 1.3rem;
+  }
+
+  /* Empty state compact on mobile */
+  .empty-state {
+    padding: 1.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Btn danger full-width in forms on mobile */
+  .btn-danger {
+    justify-content: center;
+  }
+
+  /* Mini-calendar events dropdown */
+  #mini-events-dropdown-content {
+    max-height: 150px;
   }
 }
 
@@ -1445,7 +1475,38 @@ textarea {
   }
 
   .month-nav h2 {
-    font-size: 0.85rem;
+    font-size: 0.72rem;
+    min-width: 90px;
+  }
+
+  .day-view-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .year-view-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    padding: 0.6rem;
+  }
+
+  .year-month-wrapper {
+    padding: 0.6rem;
+  }
+
+  .panel-header h2 {
+    font-size: 0.9rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+
+  .mobile-bottom-nav {
+    height: 58px;
+  }
+
+  .main-workspace {
+    padding-bottom: 58px;
   }
 }
 
@@ -1490,6 +1551,11 @@ textarea {
 }
 
 .mobile-only {
+  display: none;
+}
+
+/* Brand label shown only on mobile via media query */
+.header-brand-label {
   display: none;
 }
 
