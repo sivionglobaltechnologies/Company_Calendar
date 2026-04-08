@@ -197,8 +197,13 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="event-desc">Description</label>
+                        <label for="event-desc">Notes</label>
                         <textarea id="event-desc" rows="3" placeholder="Optional details..."></textarea>
+                    </div>
+
+                    <div class="form-group checkbox-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                        <input type="checkbox" id="event-reminder" style="width: auto; margin: 0;">
+                        <label for="event-reminder" style="margin-bottom: 0; cursor: pointer;">Set Reminder <i class="fa-solid fa-bell" style="color: var(--primary-color);"></i></label>
                     </div>
 
                     <div class="form-actions">
@@ -212,6 +217,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notifications Container -->
+    <div id="toast-container"></div>
 
     <!-- Modules -->
     <script type="module" src="js/storage.js"></script>

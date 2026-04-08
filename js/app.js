@@ -109,7 +109,39 @@ document.addEventListener('DOMContentLoaded', () => {
             eventsManager.refresh();
             calendar.render();
         }
+
+        if (e.key === 'admin_notifications' && e.newValue) {
+            try {
+                const notifications = JSON.parse(e.newValue);
+                if (notifications.length > 0) {
+                    const latest = notifications[notifications.length - 1];
+                    showToast(latest.message, 'success');
+                }
+            } catch (err) {
+                console.error("Error parsing admin notifications", err);
+            }
+        }
     });
+
+    /** Show a premium toast notification */
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-info';
+        toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+        
+        container.appendChild(toast);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            toast.classList.add('toast-out');
+            setTimeout(() => toast.remove(), 400);
+        }, 5000);
+    }
 
     // 11. Mobile Bottom Navigation Bar
     const mobileNav = document.getElementById('mobile-bottom-nav');
@@ -195,7 +227,7 @@ function openDayPanel(dateStr) {
                         ${e.startTime} ${e.endTime ? `- ${e.endTime}` : ''}
                     </div>
                 ` : ''}
-                <h4>${e.title}</h4>
+                <h4>${e.title} ${e.hasReminder ? '<i class="fa-solid fa-bell" style="color: #f59e0b; margin-left: 0.5rem; font-size: 0.9em;" title="Reminder Set"></i>' : ''}</h4>
                 ${e.description ? `<p>${e.description}</p>` : ''}
                 ${e.isAdminMeeting ? `<p class="event-time" style="margin-top:4px"><i class="fa-solid fa-users-line" style="font-size:0.75rem"></i> Company Meeting</p>` : ''}
                 ${e.isAdminHoliday ? `<p class="event-time" style="margin-top:4px"><i class="fa-solid fa-umbrella-beach" style="font-size:0.75rem"></i> Company Holiday</p>` : ''}
@@ -287,6 +319,7 @@ function openEventModal(eventId = null) {
             if (ev.startTime) document.getElementById('event-start').value = ev.startTime;
             if (ev.endTime) document.getElementById('event-end').value = ev.endTime;
             if (ev.description) document.getElementById('event-desc').value = ev.description;
+            document.getElementById('event-reminder').checked = !!ev.hasReminder;
 
             if (ev.isReadOnly) {
                 // Disable everything
@@ -303,6 +336,7 @@ function openEventModal(eventId = null) {
         modalTitle.textContent = "Add Event";
         form.querySelectorAll('input, select, textarea, button[type="submit"]').forEach(el => el.disabled = false);
         document.getElementById('event-id').value = '';
+        document.getElementById('event-reminder').checked = false;
         deleteBtn.classList.add('hidden');
     }
 
@@ -325,7 +359,8 @@ function saveEventFromForm() {
         type: document.getElementById('event-type').value,
         startTime: document.getElementById('event-start').value || null,
         endTime: document.getElementById('event-end').value || null,
-        description: document.getElementById('event-desc').value
+        description: document.getElementById('event-desc').value,
+        hasReminder: document.getElementById('event-reminder').checked
     };
 
     if (id) {

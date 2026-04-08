@@ -37,7 +37,8 @@ function meetingToCalEvent(m) {
         endTime: null,
         description: [m.attendees && `Attendees: ${m.attendees}`, m.location && `Location: ${m.location}`, m.notes].filter(Boolean).join(' · ') || null,
         isReadOnly: true,         // meetings managed only from admin panel
-        isAdminMeeting: true
+        isAdminMeeting: true,
+        recurrence: m.recurrence || 'none'
     };
 }
 
@@ -120,13 +121,49 @@ export const eventsManager = {
             ...adminMeetings,
             ...userEvents
         ];
+        
+        console.log(`[Events] Refreshed: ${allEvents.length} items total (${adminEvents.length} company events).`);
     },
 
     getAll: () => allEvents,
 
     getEventsForDate: (dateString) => {
         return allEvents
-            .filter(e => e.date === dateString)
+            .filter(e => {
+                // Exact match
+                if (e.date === dateString) return true;
+
+                // Recurrence check
+                if (e.recurrence && e.recurrence !== 'none') {
+                    const eventDate = new Date(e.date);
+                    const targetDate = new Date(dateString);
+
+                    // Daily: Happens every day starting from eventDate
+                    if (e.recurrence === 'daily') {
+                        return targetDate >= eventDate;
+                    }
+
+                    // Weekly: Happens every week on the same day starting from eventDate
+                    if (e.recurrence === 'weekly') {
+                        return targetDate >= eventDate && targetDate.getDay() === eventDate.getDay();
+                    }
+
+                    // Bi-weekly: Happens every 2 weeks starting from eventDate
+                    if (e.recurrence === 'biweekly') {
+                        if (targetDate < eventDate) return false;
+                        const diffTime = Math.abs(targetDate - eventDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays % 14 === 0;
+                    }
+
+                    // Monthly: Happens every month on the same day of the month starting from eventDate
+                    if (e.recurrence === 'monthly') {
+                        return targetDate >= eventDate && targetDate.getDate() === eventDate.getDate();
+                    }
+                }
+
+                return false;
+            })
             .sort((a, b) => {
                 if (!a.startTime) return 1;
                 if (!b.startTime) return -1;

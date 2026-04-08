@@ -295,40 +295,28 @@ function saveToLS(key, data) {
 function cleanupPastMeetings() {
     const today = fmtDate(new Date());
     const before = state.meetings.length;
-    state.meetings = state.meetings.filter(m => m.date >= today);
+    // Only cleanup non-recurring meetings that are in the past
+    state.meetings = state.meetings.filter(m => {
+        if (m.recurrence && m.recurrence !== 'none') return true;
+        return m.date >= today;
+    });
     if (state.meetings.length !== before) {
         saveToLS(KEYS.meetings, state.meetings);
-        console.info(`[Admin] Auto-removed ${before - state.meetings.length} past meeting(s).`);
+        console.info(`[Admin] Auto-removed ${before - state.meetings.length} past one-time meeting(s).`);
     }
 }
 
 // ─── DEFAULT SEED DATA ────────────────────────────────────────────────────────
 function getDefaultMeetings() {
-    const today = fmtDate(new Date());
-    return [
-        { id: uid(), title: 'Morning Stand-up', date: today, time: '09:00', duration: '30 min', attendees: 'Engineering Team', location: 'Conference Room A', notes: 'Daily sync', recurrence: 'daily' },
-        { id: uid(), title: 'Sprint Review', date: today, time: '14:00', duration: '60 min', attendees: 'All Teams', location: 'Main Hall', notes: 'End of sprint review', recurrence: 'biweekly' }
-    ];
+    return [];
 }
 
 function getDefaultHolidays() {
-    return [
-        { id: uid(), title: "Republic Day", date: '2026-01-26', type: 'gov', description: 'Indian Republic Day', optional: false },
-        { id: uid(), title: "Holi", date: '2026-03-04', type: 'gov', description: 'Festival of Colors', optional: false },
-        { id: uid(), title: "Good Friday", date: '2026-04-03', type: 'gov', description: 'Good Friday', optional: true },
-        { id: uid(), title: "Company Foundation", date: '2026-06-15', type: 'custom', description: 'Company Anniversary', optional: false },
-        { id: uid(), title: "Diwali", date: '2026-11-08', type: 'gov', description: 'Festival of Lights', optional: false },
-        { id: uid(), title: "Christmas", date: '2026-12-25', type: 'gov', description: 'Christmas Day', optional: false }
-    ];
+    return [];
 }
 
 function getDefaultEvents() {
-    const today = fmtDate(new Date());
-    return [
-        { id: uid(), title: 'Q1 Planning', date: today, type: 'internal', startTime: '10:00', endTime: '12:00', description: 'Quarterly planning session', location: 'Board Room' },
-        { id: uid(), title: 'Client Demo – Acme', date: today, type: 'client', startTime: '15:00', endTime: '16:00', description: 'Product demo for Acme Corp', location: 'Zoom' },
-        { id: uid(), title: 'Team Lunch', date: today, type: 'custom', startTime: '13:00', endTime: '14:00', description: 'Monthly team lunch', location: 'Cafeteria' }
-    ];
+    return [];
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
@@ -474,7 +462,7 @@ function saveMeeting() {
     }
 
     saveToLS(KEYS.meetings, state.meetings);
-    notifyCalendarUpdate();
+    notifyCalendarUpdate(`Admin added/updated meeting: ${data.title}`);
     document.getElementById('meeting-modal').classList.add('hidden');
     renderMeetingsTable();
     refreshDashboard();
@@ -554,7 +542,7 @@ function saveHoliday() {
     }
 
     saveToLS(KEYS.holidays, state.holidays);
-    notifyCalendarUpdate();
+    notifyCalendarUpdate(`Admin added/updated holiday: ${data.title}`);
     // events.js reads admin_holidays directly on each calendar render — no extra sync needed
     document.getElementById('holiday-modal').classList.add('hidden');
     renderHolidaysTable();
@@ -650,7 +638,7 @@ function saveEvent() {
     }
 
     saveToLS(KEYS.events, state.events);
-    notifyCalendarUpdate();
+    notifyCalendarUpdate(`Admin added/updated event: ${data.title}`);
     // events.js reads admin_events directly on each calendar render — no extra sync needed
     document.getElementById('event-modal-admin').classList.add('hidden');
     renderEventsTable();
@@ -789,7 +777,36 @@ function showToast(message, type = 'info') {
 }
 
 // ─── CROSS-TAB SYNC HELPER ────────────────────────────────────────────────
-function notifyCalendarUpdate() {
+function notifyCalendarUpdate(message = null) {
     // Notify main calendar in other tabs that data changed
     window.localStorage.setItem('calendar_sync_trigger', Date.now());
+
+    if (message) {
+        // Log internally for debugging
+        console.log(`[Sync] Notifying updates: ${message}`);
+        
+        // Show a local confirmation toast for the admin
+        showAdminToast(message);
+
+        const notifications = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
+        notifications.push({
+            id: Date.now(),
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+        // Keep only last 5 notifications
+        if (notifications.length > 5) notifications.shift();
+        localStorage.setItem('admin_notifications', JSON.stringify(notifications));
+    }
+}
+
+/** Show the existing toast in admin panel */
+function showAdminToast(msg) {
+    const toast = document.getElementById('admin-toast');
+    const msgEl = document.getElementById('admin-toast-msg');
+    if (toast && msgEl) {
+        msgEl.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 5000);
+    }
 }
