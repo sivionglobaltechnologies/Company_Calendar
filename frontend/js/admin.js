@@ -6,6 +6,8 @@
 
 'use strict';
 
+import { buildApiUrl } from './config.js';
+
 // ─── ADMIN CREDENTIALS (change as needed) ───────────────────────────────────
 const ADMIN_CREDENTIALS = {
     username: 'admin',
@@ -782,7 +784,7 @@ function notifyCalendarUpdate(message = null, type = 'event', action = 'added', 
         const targetDate = date || new Date().toISOString().split('T')[0];
 
         // Post to backend database
-        fetch('/api/notifications', {
+        fetch(buildApiUrl('/api/notifications'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

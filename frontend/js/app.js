@@ -4,6 +4,7 @@
 import { themeManager } from './theme.js';
 import { eventsManager } from './events.js';
 import { calendar } from './calendar.js';
+import { buildApiUrl } from './config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cacheBuster = Date.now();
         console.log(`[Badge] Fetching unread notifications... (cb: ${cacheBuster})`);
         try {
-            const res = await fetch(`/api/notifications?unreadOnly=true&_=${cacheBuster}`);
+            const res = await fetch(buildApiUrl(`/api/notifications?unreadOnly=true&_=${cacheBuster}`));
             if (res.ok) {
                 const data = await res.json();
                 const unreadCount = data.notifications ? data.notifications.length : 0;
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function markAllNotificationsRead() {
         try {
-            await fetch('/api/notifications/mark-all-read', {
+            await fetch(buildApiUrl('/api/notifications/mark-all-read'), {
                 method: 'PATCH'
             });
             updateNotificationBadge();
@@ -187,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (addBtn) addBtn.style.display = 'none';
 
         try {
-            const res = await fetch('/api/notifications?unreadOnly=true');
+            const res = await fetch(buildApiUrl('/api/notifications?unreadOnly=true'));
             console.log(`[Panel] Fetch status: ${res.status}`);
             const data = await res.json();
             const notifications = data.notifications || [];
