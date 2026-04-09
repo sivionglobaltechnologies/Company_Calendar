@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Server Status</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:24px}
+    .status{font-size:1.25rem;margin-top:12px}
+    .ok{color:green}
+    .bad{color:crimson}
+    button{margin-top:12px;padding:8px 12px}
+    pre{background:#f6f8fa;padding:12px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h1>Server Status Check</h1>
+  <div>Endpoint checked: <code>/api/health</code></div>
+  <div class="status" id="status">Checking…</div>
+  <button id="refresh">Check now</button>
+  <pre id="output" aria-live="polite"></pre>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const outEl = document.getElementById('output');
+    const btn = document.getElementById('refresh');
+
+    async function check() {
+      statusEl.textContent = 'Checking…';
+      outEl.textContent = '';
+      try {
+        const resp = await fetch('/api/health', {cache: 'no-store'});
+        const text = await resp.text();
+        outEl.textContent = `HTTP ${resp.status} ${resp.statusText}\n\n${text}`;
+        if (resp.ok) {
+          statusEl.textContent = 'Server is running';
+          statusEl.className = 'status ok';
+        } else {
+          statusEl.textContent = 'Server responded with error';
+          statusEl.className = 'status bad';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Unable to reach server';
+        statusEl.className = 'status bad';
+        outEl.textContent = String(err);
+      }
+    }
+
+    btn.addEventListener('click', check);
+    // Auto-check on load
+    check();
+  </script>
+</body>
+</html>
