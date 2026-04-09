@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the project root (one directory up from backend)
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // ─── MongoDB Connection ──────────────────────────────────────────────────────
 const mongoURI = process.env.mongodb_url;
