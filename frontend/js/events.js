@@ -4,6 +4,7 @@
 
 import { storage } from './storage.js';
 import { getGovernmentHolidays } from './holidays.js';
+import { buildApiUrl } from './config.js';
 
 let allEvents = [];
 let _currentYear = new Date().getFullYear();
@@ -97,10 +98,7 @@ export const eventsManager = {
         let dbData = { calendar_events: [], admin_meetings: [], admin_holidays: [], admin_events: [] };
         
         try {
-            // Use window location if config is missing, but import buildApiUrl if possible.
-            // Since we're in a browser module, we can access global paths.
-            // Let's use dynamic fetch to current origin + /api
-            const res = await fetch('/api/calendar-data/all');
+            const res = await fetch(buildApiUrl('/api/calendar-data/all'));
             if (res.ok) {
                 const json = await res.json();
                 dbData = json.data;
