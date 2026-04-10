@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="stylesheet" href="css/style.css">
-    <meta name="api-base" content="https://company-calendar.onrender.com">
+    <meta name="api-base" content="http://localhost:5000">
 </head>
 
 <body class="light-mode">
@@ -96,9 +96,6 @@
                     <button id="theme-toggle" class="icon-btn" title="Toggle Theme">
                         <i class="fa-solid fa-moon"></i>
                     </button>
-                    <button id="add-event-header-btn" class="btn btn-primary" title="Add New Event">
-                        <i class="fa-solid fa-plus"></i> <span class="mobile-hidden">Add Event</span>
-                    </button>
                     <button id="notification-btn" class="icon-btn" style="position: relative;" title="Notifications">
                         <i class="fa-solid fa-bell"></i>
                         <span id="notification-badge" class="badge-dot" style="color: red;">0</span>
@@ -129,7 +126,6 @@
             <div class="panel-content">
                 <div class="event-list-header">
                     <h3>Schedule</h3>
-                    <button id="add-event-panel-btn" class="icon-btn small"><i class="fa-solid fa-plus"></i></button>
                 </div>
                 <div id="event-list" class="event-list">
                     <!-- Events injected by JS -->
@@ -148,9 +144,9 @@
             <i class="fa-solid fa-calendar-day"></i>
             <span>Today</span>
         </button>
-        <button class="nav-item nav-add" id="mobile-nav-add" aria-label="Add event">
-            <div class="fab-circle"><i class="fa-solid fa-plus"></i></div>
-            <span class="fab-label">Add</span>
+        <button class="nav-item" id="mobile-nav-notifications" aria-label="Notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span>Alerts</span>
         </button>
         <button class="nav-item" id="mobile-nav-theme" aria-label="Toggle theme">
             <i class="fa-solid fa-moon" id="mobile-theme-icon"></i>

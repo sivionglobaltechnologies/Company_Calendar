@@ -646,6 +646,46 @@ body.dark-mode .brand-text {
   border-color: var(--primary);
 }
 
+.event-card.type-gov {
+  border-left: 4px solid var(--gov);
+  background-color: var(--gov-bg);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.event-card.type-client {
+  border-left: 4px solid var(--client);
+  background-color: var(--client-bg);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.event-card.type-internal {
+  border-left: 4px solid var(--internal);
+  background-color: var(--internal-bg);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.event-card.type-custom {
+  border-left: 4px solid var(--custom);
+  background-color: var(--custom-bg);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.event-card.type-gov h4 {
+  color: var(--gov);
+}
+
+.event-card.type-client h4 {
+  color: var(--client);
+}
+
+.event-card.type-internal h4 {
+  color: var(--internal);
+}
+
+.event-card.type-custom h4 {
+  color: var(--custom);
+}
+
 .event-time {
   font-size: 0.75rem;
   font-weight: 700;
@@ -1027,7 +1067,8 @@ textarea {
 
   /* ─ Body: reserve space for bottom nav ─ */
   body {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   /* ─ Header: single compact row, all buttons same size ─ */
@@ -1176,14 +1217,20 @@ textarea {
     flex-shrink: 0;
   }
 
-  /* Hide desktop theme toggle — in bottom nav */
+  /* Hide desktop theme toggle — bottom nav handles theme control */
   #theme-toggle {
-    display: none;
+    display: none !important;
   }
 
-  /* header-right is empty on mobile — hide it */
+  /* Keep notification visible on mobile in the header */
   .header-right {
-    display: none !important;
+    display: flex !important;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  #notification-btn {
+    display: inline-flex !important;
   }
 
   /* ─ Grid Header (day labels) ─ */

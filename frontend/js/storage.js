@@ -1,32 +1,40 @@
 // storage.js
-// Handles all LocalStorage operations
+// Handles all backend database operations for user events
 
-const STORAGE_KEY = 'calendar_events';
+import { buildApiUrl } from './config.js';
+
+const SOURCE_TYPE = 'calendar_events';
 
 export const storage = {
     /**
-     * Get all events from LocalStorage
+     * Get all events from the database
      * @returns {Array} List of events
      */
-    getEvents: () => {
+    getEvents: async () => {
         try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return data ? JSON.parse(data) : [];
+            const res = await fetch(buildApiUrl(`/api/calendar-data?sourceType=${SOURCE_TYPE}`));
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
+            return data.data || [];
         } catch (e) {
-            console.error("Error reading from LocalStorage", e);
+            console.error("Error reading from Database", e);
             return [];
         }
     },
 
     /**
-     * Save events back to LocalStorage
+     * Save events back to the database
      * @param {Array} events 
      */
-    saveEvents: (events) => {
+    saveEvents: async (events) => {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+            await fetch(buildApiUrl('/api/calendar-data/bulk'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceType: SOURCE_TYPE, items: events })
+            });
         } catch (e) {
-            console.error("Error saving to LocalStorage", e);
+            console.error("Error saving to Database", e);
         }
     }
 };

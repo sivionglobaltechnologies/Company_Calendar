@@ -81,39 +81,42 @@ export const eventsManager = {
      * init — called once at startup.
      * Stores the year and then delegates to refresh() for actual data loading.
      */
-    init: (year) => {
+    init: async (year) => {
         _currentYear = year;
-        eventsManager.refresh();
+        await eventsManager.refresh();
     },
 
-    /**
-     * refresh — re-reads ALL data sources from localStorage every time it's called.
-     * Called before every calendar render so admin changes appear immediately.
-     */
-    refresh: () => {
-        // 1. Built-in government holidays (JS module, year-range)
+    refresh: async () => {
+        // 1. Built-in government holidays
         const govEvents = [
             ...getGovernmentHolidays(_currentYear - 1),
             ...getGovernmentHolidays(_currentYear),
             ...getGovernmentHolidays(_currentYear + 1)
         ];
 
-        // 2. User-created events (stored in calendar_events, excluding admin-synced ones
-        //    so we don't double-count — admin pipeline handles those separately below)
-        const userEvents = storage.getEvents().filter(
+        let dbData = { calendar_events: [], admin_meetings: [], admin_holidays: [], admin_events: [] };
+        
+        try {
+            // Use window location if config is missing, but import buildApiUrl if possible.
+            // Since we're in a browser module, we can access global paths.
+            // Let's use dynamic fetch to current origin + /api
+            const res = await fetch('/api/calendar-data/all');
+            if (res.ok) {
+                const json = await res.json();
+                dbData = json.data;
+            }
+        } catch (e) {
+            console.error("Fetch API events failed:", e);
+        }
+
+        const userEvents = (dbData.calendar_events || []).filter(
             e => !e.isAdminMeeting && !e.isAdminHoliday && !e.isAdminEvent
         );
 
-        // 3. Admin-managed meetings  ← new source
-        const adminMeetings = readLS(ADMIN_MEETINGS_KEY).map(meetingToCalEvent);
+        const adminMeetings = (dbData.admin_meetings || []).map(meetingToCalEvent);
+        const adminHolidays = (dbData.admin_holidays || []).map(holidayToCalEvent);
+        const adminEvents = (dbData.admin_events || []).map(adminEventToCalEvent);
 
-        // 4. Admin-managed holidays  ← read directly (not via calendar_events sync)
-        const adminHolidays = readLS(ADMIN_HOLIDAYS_KEY).map(holidayToCalEvent);
-
-        // 5. Admin-managed company events  ← read directly
-        const adminEvents = readLS(ADMIN_EVENTS_KEY).map(adminEventToCalEvent);
-
-        // Combine: gov built-in → admin holidays (override/extend) → admin events → admin meetings → user events
         allEvents = [
             ...govEvents,
             ...adminHolidays,
@@ -138,9 +141,10 @@ export const eventsManager = {
                     const eventDate = new Date(e.date);
                     const targetDate = new Date(dateString);
 
-                    // Daily: Happens every day starting from eventDate
+                    // Daily: Happens every weekday only, starting from eventDate
                     if (e.recurrence === 'daily') {
-                        return targetDate >= eventDate;
+                        const weekday = targetDate.getDay();
+                        return targetDate >= eventDate && weekday !== 0 && weekday !== 6;
                     }
 
                     // Weekly: Happens every week on the same day starting from eventDate
@@ -175,34 +179,34 @@ export const eventsManager = {
         return allEvents.find(e => e.id === id);
     },
 
-    addEvent: (eventData) => {
+    addEvent: async (eventData) => {
         eventData.id = `evt-${Date.now()}`;
         eventData.isReadOnly = false;
         allEvents.push(eventData);
-        eventsManager.saveToStorage();
+        await eventsManager.saveToStorage();
     },
 
-    updateEvent: (id, eventData) => {
+    updateEvent: async (id, eventData) => {
         const index = allEvents.findIndex(e => e.id === id);
         if (index > -1 && !allEvents[index].isReadOnly) {
             allEvents[index] = { ...allEvents[index], ...eventData, id };
-            eventsManager.saveToStorage();
+            await eventsManager.saveToStorage();
         }
     },
 
-    deleteEvent: (id) => {
+    deleteEvent: async (id) => {
         const index = allEvents.findIndex(e => e.id === id);
         if (index > -1 && !allEvents[index].isReadOnly) {
             allEvents.splice(index, 1);
-            eventsManager.saveToStorage();
+            await eventsManager.saveToStorage();
         }
     },
 
-    saveToStorage: () => {
+    saveToStorage: async () => {
         // Only persist user-created events (not admin-sourced ones — those live in their own keys)
         const userEvents = allEvents.filter(
             e => !e.isReadOnly && !e.isAdminMeeting && !e.isAdminHoliday && !e.isAdminEvent
         );
-        storage.saveEvents(userEvents);
+        await storage.saveEvents(userEvents);
     }
 };

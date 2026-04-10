@@ -33,11 +33,11 @@ let state = {
 };
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Apply saved theme before anything renders (avoids flash)
     initAdminTheme();
 
-    loadAllData();
+    await loadAllData();
 
     const isLoggedIn = sessionStorage.getItem(KEYS.session) === 'true';
     if (isLoggedIn) {
@@ -269,24 +269,34 @@ function navigateTo(section) {
 }
 
 // ─── DATA PERSISTENCE ─────────────────────────────────────────────────────────
-function loadAllData() {
-    state.meetings = loadFromLS(KEYS.meetings, getDefaultMeetings());
-    state.holidays = loadFromLS(KEYS.holidays, getDefaultHolidays());
-    state.events = loadFromLS(KEYS.events, getDefaultEvents());
+async function loadAllData() {
+    state.meetings = await loadFromDB(KEYS.meetings, getDefaultMeetings());
+    state.holidays = await loadFromDB(KEYS.holidays, getDefaultHolidays());
+    state.events = await loadFromDB(KEYS.events, getDefaultEvents());
 
     // Auto-remove any meetings whose date is in the past
-    cleanupPastMeetings();
+    await cleanupPastMeetings();
 }
 
-function loadFromLS(key, defaults) {
+async function loadFromDB(key, defaults) {
     try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : defaults;
+        const res = await fetch(buildApiUrl(`/api/calendar-data?sourceType=${key}`));
+        if (!res.ok) return defaults;
+        const json = await res.json();
+        return json.data || defaults;
     } catch { return defaults; }
 }
 
-function saveToLS(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
+async function saveToDB(key, data) {
+    try {
+        await fetch(buildApiUrl('/api/calendar-data/bulk'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceType: key, items: data })
+        });
+    } catch (e) {
+        console.error('Error saving to DB', e);
+    }
 }
 
 /**
@@ -294,7 +304,7 @@ function saveToLS(key, data) {
  * strictly before today. Called on every page load and after every save,
  * so the calendar never shows stale finished meetings.
  */
-function cleanupPastMeetings() {
+async function cleanupPastMeetings() {
     const today = fmtDate(new Date());
     const before = state.meetings.length;
     // Only cleanup non-recurring meetings that are in the past
@@ -303,7 +313,7 @@ function cleanupPastMeetings() {
         return m.date >= today;
     });
     if (state.meetings.length !== before) {
-        saveToLS(KEYS.meetings, state.meetings);
+        await saveToDB(KEYS.meetings, state.meetings);
         console.info(`[Admin] Auto-removed ${before - state.meetings.length} past one-time meeting(s).`);
     }
 }
@@ -322,9 +332,9 @@ function getDefaultEvents() {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function refreshDashboard() {
+async function refreshDashboard() {
     // Always run cleanup first so stat counts are accurate
-    cleanupPastMeetings();
+    await cleanupPastMeetings();
 
     setEl('stat-meetings', state.meetings.length);
     setEl('stat-holidays', state.holidays.length);
@@ -437,7 +447,7 @@ function openMeetingModal(id = null) {
     modal.classList.remove('hidden');
 }
 
-function saveMeeting() {
+async function saveMeeting() {
     const title = getVal('m-title').trim();
     const date = getVal('m-date');
     if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
@@ -463,11 +473,11 @@ function saveMeeting() {
         showToast('Meeting added successfully.', 'success');
     }
 
-    saveToLS(KEYS.meetings, state.meetings);
+    await saveToDB(KEYS.meetings, state.meetings);
     notifyCalendarUpdate(`Admin added/updated meeting: ${data.title}`, 'meeting', state.editTarget ? 'updated' : 'added', data.date, data.time);
     document.getElementById('meeting-modal').classList.add('hidden');
     renderMeetingsTable();
-    refreshDashboard();
+    await refreshDashboard();
 }
 
 // ─── HOLIDAYS CRUD ────────────────────────────────────────────────────────────
@@ -520,7 +530,7 @@ function openHolidayModal(id = null) {
     modal.classList.remove('hidden');
 }
 
-function saveHoliday() {
+async function saveHoliday() {
     const title = getVal('h-title').trim();
     const date = getVal('h-date');
     if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
@@ -543,12 +553,12 @@ function saveHoliday() {
         showToast('Holiday added successfully.', 'success');
     }
 
-    saveToLS(KEYS.holidays, state.holidays);
+    await saveToDB(KEYS.holidays, state.holidays);
     notifyCalendarUpdate(`Admin added/updated holiday: ${data.title}`, 'holiday', state.editTarget ? 'updated' : 'added', data.date);
     // events.js reads admin_holidays directly on each calendar render — no extra sync needed
     document.getElementById('holiday-modal').classList.add('hidden');
     renderHolidaysTable();
-    refreshDashboard();
+    await refreshDashboard();
 }
 
 /**
@@ -613,7 +623,7 @@ function openEventModal(id = null) {
     modal.classList.remove('hidden');
 }
 
-function saveEvent() {
+async function saveEvent() {
     const title = getVal('ev-title').trim();
     const date = getVal('ev-date');
     if (!title || !date) { showToast('Title and Date are required.', 'error'); return; }
@@ -639,12 +649,12 @@ function saveEvent() {
         showToast('Event added successfully.', 'success');
     }
 
-    saveToLS(KEYS.events, state.events);
+    await saveToDB(KEYS.events, state.events);
     notifyCalendarUpdate(`Admin added/updated event: ${data.title}`, 'event', state.editTarget ? 'updated' : 'added', data.date, data.startTime);
     // events.js reads admin_events directly on each calendar render — no extra sync needed
     document.getElementById('event-modal-admin').classList.add('hidden');
     renderEventsTable();
-    refreshDashboard();
+    await refreshDashboard();
 }
 
 
@@ -653,12 +663,12 @@ function saveEvent() {
 function confirmDelete(type, id, name) {
     document.getElementById('confirm-item-name').textContent = `"${name}"`;
     document.getElementById('confirm-dialog-overlay').classList.remove('hidden');
-    state.confirmCallback = () => {
+    state.confirmCallback = async () => {
         const item = state[type].find(i => i.id === id);
         const itemDate = item?.date || item?.startTime?.split('T')[0] || new Date().toISOString().split('T')[0];
         
         state[type] = state[type].filter(item => item.id !== id);
-        saveToLS(KEYS[type], state[type]);
+        await saveToDB(KEYS[type], state[type]);
         const schemaType = type === 'meetings' ? 'meeting' : (type === 'holidays' ? 'holiday' : 'event');
         const itemTime = item?.time || item?.startTime || '';
         notifyCalendarUpdate(`Admin deleted ${type.slice(0, -1)}: ${name}`, schemaType, 'deleted', itemDate, itemTime);
@@ -667,13 +677,15 @@ function confirmDelete(type, id, name) {
         if (type === 'meetings') renderMeetingsTable();
         if (type === 'holidays') renderHolidaysTable();
         if (type === 'events') renderEventsTable();
-        refreshDashboard();
+        await refreshDashboard();
     };
 }
 
 function bindConfirmDialog() {
-    document.getElementById('confirm-yes-btn').addEventListener('click', () => {
-        state.confirmCallback?.();
+    document.getElementById('confirm-yes-btn').addEventListener('click', async () => {
+        if (state.confirmCallback) {
+            await state.confirmCallback();
+        }
         state.confirmCallback = null;
         document.getElementById('confirm-dialog-overlay').classList.add('hidden');
     });

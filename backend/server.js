@@ -23,9 +23,9 @@ if (!mongoURI) {
 }
 
 mongoose.connect(mongoURI, {
-    dbName: 'company_calendar'
+    dbName: process.env.DB_NAME || 'company_calendar'
 })
-    .then(() => console.log('✅ Connected to MongoDB Atlas — company_calendar'))
+    .then(() => console.log(`✅ Connected to MongoDB Atlas — ${process.env.DB_NAME || 'company_calendar'}`))
     .catch((err) => {
         console.error('❌ MongoDB connection error:', err.message);
         console.warn('⚠️ Server will continue running in "offline mode" without database support.');
@@ -33,7 +33,9 @@ mongoose.connect(mongoURI, {
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 const notificationRoutes = require('./routes/notificationRoutes');
+const calendarDataRoutes = require('./routes/calendarDataRoutes');
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/calendar-data', calendarDataRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

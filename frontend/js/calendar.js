@@ -18,17 +18,17 @@ export const calendar = {
     // Callbacks
     onDateSelect: null,
 
-    init: (onDateSelectCb) => {
+    init: async (onDateSelectCb) => {
         calendar.onDateSelect = onDateSelectCb;
-        calendar.render();
+        await calendar.render();
     },
 
-    changeViewMode: (mode) => {
+    changeViewMode: async (mode) => {
         calendar.viewMode = mode;
-        calendar.render();
+        await calendar.render();
     },
 
-    changeMonth: (offset) => {
+    changeMonth: async (offset) => {
         const oldYear = calendar.currentDate.getFullYear();
 
         const newDate = new Date(calendar.currentDate);
@@ -37,73 +37,66 @@ export const calendar = {
 
         const newYear = calendar.currentDate.getFullYear();
 
-        // If the year changed, we need to re-initialize events to pull the correct
-        // government holidays for the new year mapping
         if (oldYear !== newYear) {
-            eventsManager.init(newYear);
+            await eventsManager.init(newYear);
         }
 
-        calendar.render();
+        await calendar.render();
     },
 
-    navigate: (offset) => {
+    navigate: async (offset) => {
         const oldYear = calendar.currentDate.getFullYear();
         const newDate = new Date(calendar.currentDate);
 
         if (calendar.viewMode === 'year') {
             newDate.setFullYear(newDate.getFullYear() + offset);
         } else if (calendar.viewMode === 'week') {
-            // Change by 7 days
             newDate.setDate(newDate.getDate() + (offset * 7));
         } else if (calendar.viewMode === 'day') {
-            // For day view, we advance the selected date and synchronize current date
             const selDate = new Date(calendar.selectedDate);
             selDate.setDate(selDate.getDate() + offset);
             calendar.selectedDate = selDate;
             newDate.setTime(selDate.getTime());
         } else {
-            // Default to month
             newDate.setMonth(newDate.getMonth() + offset);
         }
 
         calendar.currentDate = newDate;
-
         const newYear = calendar.currentDate.getFullYear();
         if (oldYear !== newYear) {
-            eventsManager.init(newYear);
+            await eventsManager.init(newYear);
         }
 
-        calendar.render();
+        await calendar.render();
 
         if (calendar.viewMode === 'day' && calendar.onDateSelect) {
             calendar.onDateSelect(calendar.formatDate(calendar.selectedDate));
         }
     },
 
-    goToToday: () => {
+    goToToday: async () => {
         const oldYear = calendar.currentDate.getFullYear();
         calendar.currentDate = new Date();
         calendar.selectedDate = new Date();
 
         const newYear = calendar.currentDate.getFullYear();
         if (oldYear !== newYear) {
-            eventsManager.init(newYear);
+            await eventsManager.init(newYear);
         }
 
-        // Force switch to month view to show the particular month
         calendar.viewMode = 'month';
         const viewSelect = document.getElementById('view-select');
         if (viewSelect) {
             viewSelect.value = 'month';
         }
 
-        calendar.render();
+        await calendar.render();
         if (calendar.onDateSelect) {
             calendar.onDateSelect(calendar.formatDate(calendar.selectedDate));
         }
     },
 
-    setSelectDate: (dateString) => {
+    setSelectDate: async (dateString) => {
         let newDate;
         if (dateString.includes('-') && !dateString.includes('T')) {
             const [y, m, d] = dateString.split('-').map(Number);
@@ -113,13 +106,11 @@ export const calendar = {
         }
         calendar.selectedDate = newDate;
 
-        // If the date is in a different month, switch calendar to that month
         if (calendar.selectedDate.getMonth() !== calendar.currentDate.getMonth() ||
             calendar.selectedDate.getFullYear() !== calendar.currentDate.getFullYear()) {
             calendar.currentDate = new Date(calendar.selectedDate);
-            calendar.render();
+            await calendar.render();
         } else {
-            // Just update UI selections
             calendar.updateSelectionUI();
         }
     },
@@ -132,9 +123,9 @@ export const calendar = {
         return `${y}-${m}-${d}`;
     },
 
-    render: () => {
+    render: async () => {
         // ALWAYS refresh from storage before rendering to pick up any admin changes
-        eventsManager.refresh();
+        await eventsManager.refresh();
 
         const year = calendar.currentDate.getFullYear();
         const month = calendar.currentDate.getMonth();

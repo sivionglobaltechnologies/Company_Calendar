@@ -6,20 +6,20 @@ import { eventsManager } from './events.js';
 import { calendar } from './calendar.js';
 import { buildApiUrl } from './config.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Initialize Theme
     themeManager.init();
     document.getElementById('theme-toggle')?.addEventListener('click', themeManager.toggle);
 
     // 2. Initialize Events Data
-    eventsManager.init(new Date().getFullYear());
+    await eventsManager.init(new Date().getFullYear());
 
     // 3. Initialize Calendar
     const onDateSelect = (dateStr) => {
         openDayPanel(dateStr);
     };
-    calendar.init(onDateSelect);
+    await calendar.init(onDateSelect);
 
     // 4. Wire up Calendar Navigation bindings
     document.getElementById('main-prev')?.addEventListener('click', () => calendar.navigate(-1));
@@ -230,8 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         eventDateDisplay = 'Recent';
                     }
                     
-                    const eventTimeDisplay = n.eventTime ? `, ${n.eventTime}` : '';
-                    const displayDateTime = `${eventDateDisplay}${eventTimeDisplay}`;
+                    const rawEventTime = (n.eventTime || '').trim();
+                    const eventTimeDisplay = rawEventTime && !eventDateDisplay.includes(rawEventTime)
+                        ? `, ${rawEventTime}`
+                        : '';
+                    const displayDateTime = eventDateDisplay
+                        ? `${eventDateDisplay}${eventTimeDisplay}`
+                        : rawEventTime || 'Recent';
 
                     const iconClass = n.message.toLowerCase().includes('delete') ? 'delete' : 'update';
                     const icon = iconClass === 'delete' ? 'fa-trash-can' : 'fa-clock-rotate-left';
@@ -282,10 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 10. Live Sync for Admin Updates
-    window.addEventListener('storage', (e) => {
+    window.addEventListener('storage', async (e) => {
         if (e.key === 'calendar_sync_trigger') {
-            eventsManager.refresh();
-            calendar.render();
+            await eventsManager.refresh();
+            await calendar.render();
         }
 
         if (e.key === 'admin_notifications' && e.newValue) {
@@ -332,13 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
             calendar.goToToday();
         });
 
-        // Add Event — open the add event modal
-        document.getElementById('mobile-nav-add')?.addEventListener('click', () => {
-            const selDate = calendar.formatDate(calendar.selectedDate);
-            document.getElementById('event-date').value = selDate;
-            openEventModal();
-        });
-
         // Theme — toggle and sync both icons (desktop + mobile)
         const mobileThemeIcon = document.getElementById('mobile-theme-icon');
         document.getElementById('mobile-nav-theme')?.addEventListener('click', () => {
@@ -353,6 +351,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (desktopIcon) {
                 desktopIcon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
             }
+        });
+
+        // Notifications — open the notification panel from mobile nav
+        document.getElementById('mobile-nav-notifications')?.addEventListener('click', () => {
+            openNotificationPanel();
         });
 
         // View — cycle day → week → month → year → day …
@@ -373,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentEditingEventId = null;
 
-function openDayPanel(dateStr) {
+async function openDayPanel(dateStr) {
     const dayPanel = document.getElementById('day-panel');
     const panelTitle = document.getElementById('panel-date-display');
     const listContainer = document.getElementById('event-list');
@@ -400,7 +403,7 @@ function openDayPanel(dateStr) {
     document.getElementById('event-date').value = dateStr;
 
     // Refresh all data (including admin meetings/holidays/events) before listing
-    eventsManager.refresh();
+    await eventsManager.refresh();
 
     // Load Events
     const dayEvents = eventsManager.getEventsForDate(dateStr);
@@ -449,13 +452,6 @@ function setupEventModal() {
         openEventModal(); // No ID = Add new
     });
 
-    // Open Add from Header
-    document.getElementById('add-event-header-btn')?.addEventListener('click', () => {
-        const selDate = calendar.formatDate(calendar.selectedDate);
-        document.getElementById('event-date').value = selDate;
-        openEventModal();
-    });
-
     // Close Modal
     document.getElementById('close-modal')?.addEventListener('click', closeEventModal);
     document.getElementById('cancel-modal')?.addEventListener('click', closeEventModal);
@@ -467,12 +463,12 @@ function setupEventModal() {
     });
 
     // On delete
-    document.getElementById('delete-event-btn')?.addEventListener('click', () => {
+    document.getElementById('delete-event-btn')?.addEventListener('click', async () => {
         if (currentEditingEventId) {
             if (confirm('Are you sure you want to delete this event?')) {
-                eventsManager.deleteEvent(currentEditingEventId);
+                await eventsManager.deleteEvent(currentEditingEventId);
                 closeEventModal();
-                calendar.render();
+                await calendar.render();
                 // Refresh panel
                 openDayPanel(calendar.formatDate(calendar.selectedDate));
             }
@@ -538,7 +534,7 @@ function closeEventModal() {
     currentEditingEventId = null;
 }
 
-function saveEventFromForm() {
+async function saveEventFromForm() {
     const id = document.getElementById('event-id').value;
     const date = document.getElementById('event-date').value;
 
@@ -554,14 +550,14 @@ function saveEventFromForm() {
 
     if (id) {
         // Update
-        eventsManager.updateEvent(id, eventData);
+        await eventsManager.updateEvent(id, eventData);
     } else {
         // Add new
-        eventsManager.addEvent(eventData);
+        await eventsManager.addEvent(eventData);
     }
 
     closeEventModal();
-    calendar.render();
+    await calendar.render();
     // Refresh Panel
     openDayPanel(date);
 }
